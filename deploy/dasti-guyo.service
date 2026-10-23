@@ -7,7 +7,7 @@ After=network.target
 User=dasti
 Group=dasti
 WorkingDirectory=/opt/dasti-guyo/backend
-ExecStart=/opt/dasti-guyo/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
+ExecStart=/opt/dasti-guyo/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8031 --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=always
 RestartSec=3
 

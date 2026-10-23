@@ -14,14 +14,25 @@ REPO=${REPO:-https://github.com/maga76/dasti-guyo.git}
 DIST_TAR=${DIST_TAR:-/tmp/dasti-dist.tar.gz}
 
 echo "==> Пакеты"
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -q
-apt-get install -y -q python3-venv python3-pip git nginx certbot python3-certbot-nginx
+# Ставим только недостающее: на общем сервере нельзя случайно обновить nginx под чужими сайтами
+MISSING=""
+for pkg in python3-venv git nginx certbot python3-certbot-nginx; do
+  dpkg -s "$pkg" >/dev/null 2>&1 || MISSING="$MISSING $pkg"
+done
+if [ -n "$MISSING" ]; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -q
+  apt-get install -y -q $MISSING
+fi
 
 id dasti >/dev/null 2>&1 || useradd --system --home "$APP_DIR" --shell /usr/sbin/nologin dasti
 
 echo "==> Код"
-if [ -d "$APP_DIR/.git" ]; then
+if [ -n "${SRC_TAR:-}" ]; then
+  # Код архивом (git archive) — если с сервера нет доступа к GitHub
+  mkdir -p "$APP_DIR"
+  tar -xzf "$SRC_TAR" -C "$APP_DIR"
+elif [ -d "$APP_DIR/.git" ]; then
   git -C "$APP_DIR" fetch -q origin main
   git -C "$APP_DIR" reset -q --hard origin/main
 else
@@ -85,6 +96,6 @@ certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --register-unsafely-w
   || echo "!! certbot не смог выпустить сертификат — сайт пока работает по http"
 
 sleep 2
-curl -fsS "http://127.0.0.1:8000/api/v1/health" >/dev/null 2>&1 && echo "API работает" || systemctl status dasti-guyo --no-pager | tail -20
+curl -fsS "http://127.0.0.1:8031/api/v1/health" >/dev/null 2>&1 && echo "API работает" || systemctl status dasti-guyo --no-pager | tail -20
 echo "Готово: https://$DOMAIN"
 [ -f /root/dasti-guyo-admin.txt ] && echo "Вход администратора: $(cat /root/dasti-guyo-admin.txt)"
