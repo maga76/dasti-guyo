@@ -9,6 +9,7 @@
       .row div { flex: 1; position: relative; }
       canvas { width: 100%; height: 640px; display: block; }
       b { position: absolute; top: 8px; left: 10px; color: #fff; font: 600 15px system-ui; }
+      canvas.inset { position: absolute; right: 6px; top: 30px; width: 200px; height: 140px; background: rgba(0,0,0,0.45); border-radius: 8px; }
     </style>
   </head>
   <body>
@@ -23,6 +24,7 @@
       const words = (params.get('words') ?? 'Салом').split(',');
       const times = (params.get('times') ?? '0.9').split(',').map(Number);
       const reps = pickRepresentatives((await loadBaseDataset()).samples);
+      const stages = [];
 
       for (const word of words) {
         for (const t of times) {
@@ -30,19 +32,33 @@
           cell.innerHTML = `<b>${word} · ${t} с</b><canvas></canvas>`;
           document.getElementById('row').append(cell);
           const stage = new AvatarStage(cell.querySelector('canvas'));
+          // ?inset=1 — рядом точки рук с записи (как «Шакли даст»), чтобы сравнить с пальцами аватара
+          if (params.has('inset')) {
+            const inset = document.createElement('canvas');
+            inset.className = 'inset';
+            cell.append(inset);
+            const { drawHandInset } = await import('../src/avatar/handInset.js');
+            stage.onPose = (pose) => drawHandInset(inset, pose);
+          }
           await stage.load();
           // ?curl=1.4 — согнуть все пальцы на этот угол (проверка, что пальцы гнутся к ладони)
           if (params.has('curl')) stage.rig.debugCurl = Number(params.get('curl'));
-          // ?zoom=12 — узкий угол камеры: крупный план рук
-          if (params.has('zoom')) {
-            stage.camera.fov = Number(params.get('zoom'));
-            stage.lookAt.y -= 0.12;
-            stage.resize();
-          }
           stage.play([{ label: word, frames: reps.get(word) }]);
           // Детерминированно «проматываем» время до нужного момента (с учётом входа в жест)
           const target = 0.35 + t;
           for (let time = 0; time < target; time += 1 / 60) stage.renderFrame(1 / 60);
+          stages.push(stage);
+        }
+      }
+      // ?zoom=0.35 — крупный план кисти аватара с расстояния 0.35 м (после раскладки страницы, иначе resize сбросит камеру)
+      if (params.has('zoom')) {
+        await new Promise((r) => setTimeout(r, 300));
+        for (const stage of stages) {
+          const hand = stage.rig.sides[params.get('side') ?? 'Right'].hand.getWorldPosition(stage.lookAt.clone());
+          const dir = stage.camera.position.clone().sub(stage.lookAt).normalize();
+          stage.camera.position.copy(hand).addScaledVector(dir, Number(params.get('zoom')));
+          stage.camera.lookAt(hand.x, hand.y + 0.06, hand.z);
+          stage.renderer.render(stage.scene, stage.camera);
         }
       }
       document.title = 'DONE';

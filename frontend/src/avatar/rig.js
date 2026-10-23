@@ -32,7 +32,7 @@ const LIMITS = {
 
 // Знак нормали ладони (cross(вперёд, мизинец→указательный)) так, чтобы она смотрела внутрь ладони.
 // У левой и правой руки он противоположный (зеркальные руки). Проверено на кулаке (tests/avatar-test.html?curl=1.4).
-const PALM_SIGN = { Right: 1, Left: -1 };
+export const PALM_SIGN = { Right: 1, Left: -1 };
 
 const clamp = (v, [lo, hi]) => Math.min(hi, Math.max(lo, v));
 
@@ -239,7 +239,11 @@ export class AvatarRig {
       const s3 = p[tip].clone().sub(p[dip]).normalize();
 
       const curl = this.debugCurl;
-      const flexMcp = curl ?? clamp(Math.atan2(s1.dot(tInward), s1.dot(meta)), LIMITS.mcp);
+      // Сильный «сгиб назад» живой палец не делает — это ошибка глубины, когда кисть видна с ребра
+      // (палец сложен почти вдвое, но знак угла перепутан). Считаем такой сгиб сгибом в ладонь.
+      let rawMcp = Math.atan2(s1.dot(tInward), s1.dot(meta));
+      if (rawMcp < -0.6) rawMcp = -rawMcp;
+      const flexMcp = curl ?? clamp(rawMcp, LIMITS.mcp);
       const flexPip = curl ?? clamp(Math.acos(clamp(s1.dot(s2), [-1, 1])), LIMITS.pip);
       // Средний и концевой суставы у человека сгибаются вместе (~2:3) — это гасит шум
       const rawDip = clamp(Math.acos(clamp(s2.dot(s3), [-1, 1])), LIMITS.dip);
@@ -263,26 +267,36 @@ export class AvatarRig {
     this.solveThumb(side, p);
   }
 
-  /** Большой палец: основание — по направлению с записи, два сустава — сгиб к центру ладони. */
+  /**
+   * Большой палец: каждая фаланга — вдоль своего отрезка на записи. Он толстый и виден
+   * отдельно от остальных пальцев, поэтому его точки надёжные. Сгиб ограничен, как у человека.
+   */
   solveThumb(side, p) {
-    const [t1, t2, t3] = side.fingers.Thumb;
-    const dir = p[2].clone().sub(p[1]);
-    if (dir.lengthSq() > 1e-10) aim(t1, t2, worldPos(t1).add(dir.normalize()));
-    const a = p[2].clone().sub(p[1]).normalize();
-    const b = p[3].clone().sub(p[2]).normalize();
-    const c = p[4].clone().sub(p[3]).normalize();
-    const flexMcp = this.debugCurl ?? clamp(Math.acos(clamp(a.dot(b), [-1, 1])), LIMITS.thumbMcp);
-    const flexIp = this.debugCurl ?? clamp(Math.acos(clamp(b.dot(c), [-1, 1])), LIMITS.thumbIp);
-    // Сгибаем к центру ладони
-    const palmCenter = worldPos(side.fingers.Middle[0]).add(worldPos(side.hand)).multiplyScalar(0.5);
-    for (const [bone, angle] of [
-      [t2, flexMcp],
-      [t3, flexIp],
+    const [t1, t2, t3, t4] = side.fingers.Thumb;
+    if (this.debugCurl != null) {
+      const palmCenter = worldPos(side.fingers.Middle[0]).add(worldPos(side.hand)).multiplyScalar(0.5);
+      for (const bone of [t2, t3]) {
+        const d = boneDir(bone);
+        const toPalm = palmCenter.clone().sub(worldPos(bone));
+        toPalm.addScaledVector(d, -toPalm.dot(d)).normalize();
+        rotateWorld(bone, new THREE.Vector3().crossVectors(d, toPalm).normalize(), this.debugCurl);
+      }
+      return;
+    }
+    const seg = (i) => p[i + 1].clone().sub(p[i]).normalize();
+    const a = seg(1);
+    aim(t1, t2, worldPos(t1).add(a));
+    // Каждый следующий отрезок отклоняем от предыдущего не больше предела сустава
+    let prev = a;
+    for (const [bone, child, i, limit] of [
+      [t2, t3, 2, LIMITS.thumbMcp[1]],
+      [t3, t4, 3, LIMITS.thumbIp[1]],
     ]) {
-      const d = boneDir(bone);
-      const toPalm = palmCenter.clone().sub(worldPos(bone));
-      toPalm.addScaledVector(d, -toPalm.dot(d)).normalize();
-      rotateWorld(bone, new THREE.Vector3().crossVectors(d, toPalm).normalize(), angle);
+      let dir = seg(i);
+      const angle = Math.acos(clamp(prev.dot(dir), [-1, 1]));
+      if (angle > limit) dir = prev.clone().lerp(dir, limit / angle).normalize();
+      aim(bone, child, worldPos(bone).add(dir));
+      prev = dir;
     }
   }
 

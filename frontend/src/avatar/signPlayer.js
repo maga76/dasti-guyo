@@ -8,6 +8,7 @@
 
 import * as THREE from 'three';
 import { INPUT_SIZE, POINTS, SLOT, sequenceFeatures } from '../dataset/features.js';
+import { PALM_SIGN } from './rig.js';
 
 const CLIP_SECONDS = 2.0; // длительность одного жеста при скорости 1× (медленнее, чем в жизни, — чтобы было понятно)
 const GAP_SECONDS = 0.25; // пауза между словами
@@ -72,9 +73,13 @@ export function framesToWorld(frames, rig) {
     return n ? sum / n : null;
   };
   const flip = (meanX(0) ?? 0) > 0 ? -1 : 1;
+  // Вторая рука, мелькнувшая в паре кадров, — обычно двойное срабатывание MediaPipe на ту же
+  // кисть. Такой жест — одноручный, иначе главная рука уезжает в левую руку аватара.
+  const secondCount = frames.filter((f) => f[SLOT + 65] > 0).length;
+  const twoHanded = secondCount >= frames.length * 0.25;
   // Какая рука записи какой руке аватара: левее в кадре — правая рука аватара
   const x0 = (meanX(0) ?? 0) * flip;
-  const x1 = meanX(SLOT);
+  const x1 = twoHanded ? meanX(SLOT) : null;
   const slot0Side = x1 === null ? 'Right' : x0 <= x1 * flip ? 'Right' : 'Left';
   const slots = [
     [slot0Side, 0],
@@ -85,7 +90,7 @@ export function framesToWorld(frames, rig) {
   for (const f of frames) {
     slots.forEach(([side, base]) => {
       const palm = f[base + 65];
-      if (!(palm > 0)) {
+      if (!(palm > 0) || (base === SLOT && !twoHanded)) {
         track[side].push(null);
         return;
       }
@@ -95,17 +100,19 @@ export function framesToWorld(frames, rig) {
       const k = palm * scale;
       const points = [];
       for (let i = 0; i < POINTS; i++) {
+        // Глубина: в записях Slovo знак z обратный (проверено по согнутым пальцам — они должны уходить в ладонь)
         points.push(
           new THREE.Vector3(
             wrist.x + flip * f[base + i * 3] * k,
             wrist.y - f[base + i * 3 + 1] * k,
-            wrist.z - f[base + i * 3 + 2] * k,
+            wrist.z + f[base + i * 3 + 2] * k,
           ),
         );
       }
       track[side].push(points);
     });
   }
+  for (const side of ['Right', 'Left']) fixDepthSign(track[side], side);
   // Сглаживание по времени (среднее по 3 соседним кадрам): убирает дрожание точек с видео
   for (const side of ['Right', 'Left']) {
     const src = track[side];
@@ -130,6 +137,35 @@ export function framesToWorld(frames, rig) {
     });
   }
   return track;
+}
+
+/**
+ * Глубина с видео ненадёжна: у части записей рука по z «вывернута», и согнутые пальцы
+ * уходят не в ладонь, а к тыльной стороне — на аватаре кулак превращается в раскрытую кисть.
+ * Голосуем по всей записи руки: куда отходят кончики согнутых пальцев относительно ладони.
+ * Если в большинстве кадров не туда — отражаем руку по глубине относительно запястья.
+ */
+function fixDepthSign(frames, side) {
+  const fwd = new THREE.Vector3();
+  const across = new THREE.Vector3();
+  const normal = new THREE.Vector3();
+  const tip = new THREE.Vector3();
+  let vote = 0;
+  for (const p of frames) {
+    if (!p) continue;
+    fwd.subVectors(p[9], p[0]);
+    across.subVectors(p[5], p[17]);
+    normal.crossVectors(fwd, across).normalize().multiplyScalar(PALM_SIGN[side]);
+    for (const [mcp, end] of [[5, 8], [9, 12], [13, 16], [17, 20]]) {
+      const d = tip.subVectors(p[end], p[mcp]).dot(normal) / fwd.length();
+      if (Math.abs(d) > 0.15) vote += Math.sign(d);
+    }
+  }
+  if (vote >= 0) return;
+  for (const p of frames) {
+    if (!p) continue;
+    for (let i = 1; i < p.length; i++) p[i].z = 2 * p[0].z - p[i].z;
+  }
 }
 
 function lerpPoints(a, b, t) {
