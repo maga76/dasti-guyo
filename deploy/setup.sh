@@ -33,8 +33,9 @@ if [ -n "${SRC_TAR:-}" ]; then
   mkdir -p "$APP_DIR"
   tar -xzf "$SRC_TAR" -C "$APP_DIR"
 elif [ -d "$APP_DIR/.git" ]; then
-  git -C "$APP_DIR" fetch -q origin main
-  git -C "$APP_DIR" reset -q --hard origin/main
+  # Папка принадлежит пользователю dasti, а скрипт идёт от root — git нужно явно разрешить
+  git -c safe.directory="$APP_DIR" -C "$APP_DIR" fetch -q origin main
+  git -c safe.directory="$APP_DIR" -C "$APP_DIR" reset -q --hard origin/main
 else
   git clone -q "$REPO" "$APP_DIR"
 fi
@@ -43,6 +44,8 @@ echo "==> Сайт"
 rm -rf "$APP_DIR/frontend/dist"
 mkdir -p "$APP_DIR/frontend/dist"
 tar -xzf "$DIST_TAR" -C "$APP_DIR/frontend/dist"
+# Архив, собранный на Windows, несёт права 666 — делаем обычные
+chmod -R u=rwX,go=rX "$APP_DIR/frontend/dist"
 
 echo "==> Python"
 cd "$APP_DIR/backend"
