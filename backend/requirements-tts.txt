@@ -1,0 +1,6 @@
+# Необязательно: таджикский голос (нейросеть Meta MMS-TTS, лицензия CC BY-NC 4.0).
+# Без этих пакетов сервер работает, а сайт использует заранее озвученные файлы.
+# Установка (версия PyTorch для процессора, ~200 МБ):
+#   pip install -r requirements-tts.txt --extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2
+transformers>=4.40

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Аватар: проверка</title>
+    <style>
+      body { margin: 0; background: radial-gradient(ellipse at 50% 30%, #2a3c6e, #0a1020 70%); }
+      .row { display: flex; }
+      .row div { flex: 1; position: relative; }
+      canvas { width: 100%; height: 640px; display: block; }
+      b { position: absolute; top: 8px; left: 10px; color: #fff; font: 600 15px system-ui; }
+    </style>
+  </head>
+  <body>
+    <div class="row" id="row"></div>
+    <script type="module">
+      // ?words=Салом,Модар&times=0.5,1.0,1.4 — для каждого слова кадры в указанные моменты (секунды от начала жеста)
+      import { AvatarStage } from '../src/avatar/avatarStage.js';
+      import { loadBaseDataset } from '../src/dataset/baseDataset.js';
+      import { pickRepresentatives } from '../src/avatar/signPlayer.js';
+
+      const params = new URLSearchParams(location.search);
+      const words = (params.get('words') ?? 'Салом').split(',');
+      const times = (params.get('times') ?? '0.9').split(',').map(Number);
+      const reps = pickRepresentatives((await loadBaseDataset()).samples);
+
+      for (const word of words) {
+        for (const t of times) {
+          const cell = document.createElement('div');
+          cell.innerHTML = `<b>${word} · ${t} с</b><canvas></canvas>`;
+          document.getElementById('row').append(cell);
+          const stage = new AvatarStage(cell.querySelector('canvas'));
+          await stage.load();
+          // ?curl=1.4 — согнуть все пальцы на этот угол (проверка, что пальцы гнутся к ладони)
+          if (params.has('curl')) stage.rig.debugCurl = Number(params.get('curl'));
+          // ?zoom=12 — узкий угол камеры: крупный план рук
+          if (params.has('zoom')) {
+            stage.camera.fov = Number(params.get('zoom'));
+            stage.lookAt.y -= 0.12;
+            stage.resize();
+          }
+          stage.play([{ label: word, frames: reps.get(word) }]);
+          // Детерминированно «проматываем» время до нужного момента (с учётом входа в жест)
+          const target = 0.35 + t;
+          for (let time = 0; time < target; time += 1 / 60) stage.renderFrame(1 / 60);
+        }
+      }
+      document.title = 'DONE';
+    </script>
+  </body>
+</html>

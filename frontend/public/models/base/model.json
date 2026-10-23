@@ -1,0 +1,178 @@
+{
+ "format": "layers-model",
+ "generatedBy": "dasti-guyo (scikit-learn MLP)",
+ "convertedBy": null,
+ "modelTopology": {
+  "class_name": "Sequential",
+  "config": {
+   "name": "dasti_guyo",
+   "layers": [
+    {
+     "class_name": "Dense",
+     "config": {
+      "name": "dense_1",
+      "trainable": true,
+      "dtype": "float32",
+      "units": 256,
+      "activation": "relu",
+      "use_bias": true,
+      "kernel_initializer": {
+       "class_name": "Zeros",
+       "config": {}
+      },
+      "bias_initializer": {
+       "class_name": "Zeros",
+       "config": {}
+      },
+      "kernel_regularizer": null,
+      "bias_regularizer": null,
+      "activity_regularizer": null,
+      "kernel_constraint": null,
+      "bias_constraint": null,
+      "batch_input_shape": [
+       null,
+       2112
+      ]
+     }
+    },
+    {
+     "class_name": "Dense",
+     "config": {
+      "name": "dense_2",
+      "trainable": true,
+      "dtype": "float32",
+      "units": 128,
+      "activation": "relu",
+      "use_bias": true,
+      "kernel_initializer": {
+       "class_name": "Zeros",
+       "config": {}
+      },
+      "bias_initializer": {
+       "class_name": "Zeros",
+       "config": {}
+      },
+      "kernel_regularizer": null,
+      "bias_regularizer": null,
+      "activity_regularizer": null,
+      "kernel_constraint": null,
+      "bias_constraint": null
+     }
+    },
+    {
+     "class_name": "Dense",
+     "config": {
+      "name": "dense_3",
+      "trainable": true,
+      "dtype": "float32",
+      "units": 25,
+      "activation": "softmax",
+      "use_bias": true,
+      "kernel_initializer": {
+       "class_name": "Zeros",
+       "config": {}
+      },
+      "bias_initializer": {
+       "class_name": "Zeros",
+       "config": {}
+      },
+      "kernel_regularizer": null,
+      "bias_regularizer": null,
+      "activity_regularizer": null,
+      "kernel_constraint": null,
+      "bias_constraint": null
+     }
+    }
+   ]
+  },
+  "keras_version": "2.15.0",
+  "backend": "tensorflow"
+ },
+ "weightsManifest": [
+  {
+   "paths": [
+    "weights.bin"
+   ],
+   "weights": [
+    {
+     "name": "dense_1/kernel",
+     "shape": [
+      2112,
+      256
+     ],
+     "dtype": "float32"
+    },
+    {
+     "name": "dense_1/bias",
+     "shape": [
+      256
+     ],
+     "dtype": "float32"
+    },
+    {
+     "name": "dense_2/kernel",
+     "shape": [
+      256,
+      128
+     ],
+     "dtype": "float32"
+    },
+    {
+     "name": "dense_2/bias",
+     "shape": [
+      128
+     ],
+     "dtype": "float32"
+    },
+    {
+     "name": "dense_3/kernel",
+     "shape": [
+      128,
+      25
+     ],
+     "dtype": "float32"
+    },
+    {
+     "name": "dense_3/bias",
+     "shape": [
+      25
+     ],
+     "dtype": "float32"
+    }
+   ]
+  }
+ ],
+ "userDefinedMetadata": {
+  "labels": [
+   "Салом",
+   "Хайр",
+   "Ҳа",
+   "Не",
+   "Хуб",
+   "Бад",
+   "Ёрӣ додан",
+   "Об",
+   "Дард мекунад",
+   "Модар",
+   "Падар",
+   "Дӯст",
+   "Ман",
+   "Ту",
+   "Мо",
+   "Хона",
+   "Мактаб",
+   "Миннатдорӣ",
+   "Чӣ",
+   "Чаро",
+   "Хостан",
+   "Фаҳмидан",
+   "Имрӯз",
+   "Фардо",
+   "Хӯрок"
+  ],
+  "featureVersion": 2,
+  "seqLen": 16,
+  "frameSize": 132,
+  "source": "slovo"
+ }
+}

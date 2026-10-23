@@ -1,0 +1,29 @@
+# Node / фронтенд
+node_modules/
+frontend/dist/
+# Скачиваются скриптом frontend/scripts/fetch-assets.mjs
+frontend/public/mediapipe/
+frontend/public/models/hand_landmarker.task
+# (frontend/public/models/base — наша обученная модель, она в репозитории)
+
+# Python / бэкенд
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+backend/media/
+backend/*.db
+# БД и скачанный набор Slovo (1.2 ГБ) — см. README
+backend/data/
+
+# Секреты
+.env
+.env.local
+!.env.example
+
+# Редакторы и ОС
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="tg">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Дасти Гӯё — тарҷумони ройгони забони имову ишораи тоҷикӣ" />
+    <meta name="theme-color" content="#16213A" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Дасти Гӯё</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#/">
+        <img class="brand-logo" src="/favicon.svg" alt="" width="40" height="40" />
+        <span class="brand-name" data-i18n="app.title">Дасти Гӯё</span>
+      </a>
+      <nav class="tabs" data-i18n-aria-label="nav.label">
+        <a href="#/" data-route="translate">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M9 4v2c0 4-2 7-5 9M6 10c1 2 3 4 6 5M13 20l4-9 4 9M14.5 17h5"/></svg>
+          <span data-i18n="nav.translate"></span>
+        </a>
+        <a href="#/avatar" data-route="avatar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.5"/><path d="M8 21v-6l-3-4 4-2h6l4 2-3 4v6M9.5 13h5"/></svg>
+          <span data-i18n="nav.avatar"></span>
+        </a>
+        <a href="#/train" data-route="train">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+          <span data-i18n="nav.train"></span>
+        </a>
+        <a href="#/practice" data-route="practice">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM7 6H4a3 3 0 003 4M17 6h3a3 3 0 01-3 4"/></svg>
+          <span data-i18n="nav.practice"></span>
+        </a>
+        <a href="#/model" data-route="model">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="7" r="2"/><circle cx="5" cy="17" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 7.5l3 3.5M7 16.5l3-3.5M14 12h3"/></svg>
+          <span data-i18n="nav.model"></span>
+        </a>
+      </nav>
+      <span class="net-badge" id="netBadge" hidden></span>
+      <button type="button" class="icon-btn present-btn" id="btnPresent" data-i18n-title="present.on" data-i18n-aria-label="present.on" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+      </button>
+      <div class="lang-switch" role="group" data-i18n-aria-label="lang.label">
+        <button type="button" data-lang="tg">Тоҷ</button>
+        <button type="button" data-lang="ru">Рус</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <!-- ===== Видео (общее для обоих экранов) ===== -->
+      <section class="stage-col">
+        <div class="stage" id="stage">
+          <video id="video" playsinline muted></video>
+          <canvas id="overlay"></canvas>
+
+          <!-- Приветствие и ошибки камеры -->
+          <div class="stage-message" id="stageMessage">
+            <div class="stage-message-icon" id="msgIcon" aria-hidden="true"></div>
+            <h1 class="stage-message-title" id="msgTitle"></h1>
+            <p class="stage-message-text" id="msgText"></p>
+            <div class="stage-message-actions" id="msgActions"></div>
+          </div>
+
+          <!-- Обратный отсчёт перед записью -->
+          <div class="countdown" id="countdown" hidden aria-live="assertive">
+            <span class="countdown-label" id="countdownLabel"></span>
+            <span class="countdown-number" id="countdownNumber"></span>
+          </div>
+
+          <!-- Управление камерой поверх видео -->
+          <div class="stage-toolbar" id="stageToolbar" hidden>
+            <button type="button" class="tool" id="btnStop" data-i18n-title="camera.stop">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+              <span data-i18n="camera.stopShort"></span>
+            </button>
+            <button type="button" class="tool" id="btnSwitch" data-i18n-title="camera.switch" data-i18n-aria-label="camera.switch" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9a8 8 0 0114-3l2 2M20 15a8 8 0 01-14 3l-2-2M20 4v4h-4M4 20v-4h4"/></svg>
+            </button>
+            <label class="tool tool-toggle" data-i18n-title="camera.showPoints">
+              <input type="checkbox" id="chkPoints" checked />
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="18" cy="14" r="2"/><path d="M7.5 16.5 11 8M13.5 7.5 17 12.5"/></svg>
+              <span data-i18n="camera.points"></span>
+            </label>
+            <span class="tool-fps" id="fpsBadge"></span>
+          </div>
+        </div>
+
+        <p class="privacy">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0110 0v3M6 11h12a1 1 0 011 1v8a1 1 0 01-1 1H6a1 1 0 01-1-1v-8a1 1 0 011-1z"/></svg>
+          <span data-i18n="privacy"></span>
+        </p>
+
+        <details class="tech">
+          <summary data-i18n="tech.title"></summary>
+          <dl class="kv">
+            <dt data-i18n="status.model"></dt>
+            <dd id="stModel"></dd>
+            <dt data-i18n="status.camera"></dt>
+            <dd id="stCamera"></dd>
+            <dt data-i18n="status.delegate"></dt>
+            <dd id="stDelegate">—</dd>
+            <dt data-i18n="hands.title"></dt>
+            <dd id="stHands"></dd>
+            <dt data-i18n="stats.video"></dt>
+            <dd><span id="stVideoFps">0</span> <span data-i18n="stats.fps"></span></dd>
+            <dt data-i18n="stats.detect"></dt>
+            <dd><span id="stDetectFps">0</span> <span data-i18n="stats.fps"></span>, <span id="stDetectMs">0</span> мс</dd>
+            <dt data-i18n="stats.frames"></dt>
+            <dd id="stSkip"></dd>
+          </dl>
+        </details>
+      </section>
+
+      <!-- ===== Экран «Тарҷума» ===== -->
+      <section class="panel view" data-view="translate">
+        <div class="readout" id="readout">
+          <div class="readout-top">
+            <p class="readout-caption" id="readoutCaption" data-i18n="tr.sees"></p>
+            <label class="readout-auto">
+              <input type="checkbox" id="chkAutoSpeak" checked />
+              <span data-i18n="speech.auto"></span>
+            </label>
+            <button type="button" class="readout-speak" id="btnSpeak" data-i18n-title="speech.speak" data-i18n-aria-label="speech.speak" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
+            </button>
+          </div>
+          <p class="readout-word" id="readoutWord" aria-live="polite"></p>
+          <div class="readout-meter" id="readoutMeter"><span id="readoutBar"></span></div>
+        </div>
+
+        <!-- Предложение из распознанных слов -->
+        <section class="sentence" id="sentenceBox">
+          <div class="section-head">
+            <h2 data-i18n="tr.sentence"></h2>
+            <div class="icon-row">
+              <button type="button" class="icon-btn" id="btnBackspace" data-i18n-title="tr.eraseWord" data-i18n-aria-label="tr.eraseWord">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11a1 1 0 011 1v12a1 1 0 01-1 1H9l-6-7 6-7zM12 9l6 6M18 9l-6 6"/></svg>
+              </button>
+              <button type="button" class="icon-btn" id="btnClear" data-i18n-title="tr.clear" data-i18n-aria-label="tr.clear">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+              </button>
+              <button type="button" class="icon-btn" id="btnShowBig" data-i18n-title="tr.showBig" data-i18n-aria-label="tr.showBig">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+              </button>
+              <button type="button" class="icon-btn icon-btn-primary" id="btnSpeakSentence" data-i18n-title="tr.speakSentence" data-i18n-aria-label="tr.speakSentence">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <p class="sentence-text" id="sentenceText"></p>
+          <p class="sentence-sub" id="sentenceSub"></p>
+        </section>
+
+        <!-- Быстрые фразы -->
+        <section class="quick">
+          <h2 data-i18n="tr.quick"></h2>
+          <div class="quick-grid" id="quickGrid"></div>
+        </section>
+
+        <!-- Обратное направление: слышащий отвечает голосом или текстом -->
+        <section class="reply">
+          <h2 data-i18n="tr.reply"></h2>
+          <p class="hint" data-i18n="tr.replyHint"></p>
+          <textarea id="replyText" rows="2" data-i18n-placeholder="tr.replyPlaceholder"></textarea>
+          <div class="reply-actions">
+            <button type="button" class="btn btn-secondary" id="btnMic">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
+              <span id="btnMicLabel" data-i18n="tr.mic"></span>
+            </button>
+            <select id="micLang" data-i18n-aria-label="tr.micLang">
+              <option value="tg-TJ">Тоҷикӣ</option>
+              <option value="ru-RU">Русский</option>
+            </select>
+            <button type="button" class="btn btn-primary" id="btnReplyShow" data-i18n="tr.replyShow"></button>
+            <button type="button" class="btn btn-secondary" id="btnReplyAvatar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="6" r="3"/><path d="M6 21v-5a6 6 0 0112 0v5M4 11l3 2M20 11l-3 2"/></svg>
+              <span data-i18n="av.showWithAvatar"></span>
+            </button>
+          </div>
+          <p class="note" id="replyStatus" role="status"></p>
+        </section>
+
+        <div class="empty" id="trEmpty" hidden>
+          <h2 data-i18n="tr.noModel.title"></h2>
+          <p data-i18n="tr.noModel.text"></p>
+          <a class="btn btn-primary btn-lg" href="#/train" data-i18n="tr.noModel.cta"></a>
+        </div>
+
+        <!-- Как показать жест: анимация по записи из набора Slovo -->
+        <div class="demo" id="demo" hidden>
+          <div class="demo-head">
+            <div>
+              <h2 class="demo-word" id="demoWord"></h2>
+              <p class="demo-ru" id="demoRu"></p>
+            </div>
+            <div class="demo-actions">
+              <button type="button" class="readout-speak demo-speak" id="demoSpeak" data-i18n-title="speech.speak" data-i18n-aria-label="speech.speak">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
+              </button>
+              <button type="button" class="demo-close" id="demoClose" data-i18n-aria-label="tr.demoClose">×</button>
+            </div>
+          </div>
+          <canvas class="demo-canvas" id="demoCanvas"></canvas>
+          <p class="demo-note" id="demoNote"></p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-secondary btn-small" id="demoNext" data-i18n="tr.demoNext"></button>
+          </div>
+        </div>
+
+        <section class="vocab" id="vocab">
+          <h2 data-i18n="tr.vocabTitle"></h2>
+          <p class="hint" data-i18n="tr.vocabHint"></p>
+          <div class="vocab-grid" id="vocabGrid"></div>
+          <p class="hint" data-i18n="tr.sourceNote"></p>
+        </section>
+
+        <details class="settings">
+          <summary data-i18n="tr.settings"></summary>
+          <label class="range">
+            <span><span data-i18n="tr.threshold"></span>: <b id="thresholdValue"></b></span>
+            <input type="range" id="threshold" min="50" max="95" step="5" />
+          </label>
+          <p class="hint" data-i18n="tr.thresholdHint"></p>
+        </details>
+      </section>
+
+      <!-- ===== Экран «Ба имо»: речь слышащего → жесты 3D-аватара ===== -->
+      <section class="avatar-page view" data-view="avatar" hidden>
+        <div class="av-stage" id="avStage">
+          <canvas class="av-canvas" id="avCanvas"></canvas>
+          <div class="av-top">
+            <span class="av-badge"><i aria-hidden="true"></i><span data-i18n="av.title"></span></span>
+            <div class="av-speed" role="group" data-i18n-aria-label="av.speed">
+              <button type="button" data-speed="0.75">0.75×</button>
+              <button type="button" data-speed="1" aria-pressed="true">1×</button>
+              <button type="button" data-speed="1.25">1.25×</button>
+            </div>
+          </div>
+          <figure class="av-inset">
+            <canvas id="avInset"></canvas>
+            <figcaption data-i18n="av.inset"></figcaption>
+          </figure>
+          <div class="av-loader" id="avLoader">
+            <span class="av-ring" aria-hidden="true"></span>
+            <span id="avLoaderText"></span>
+          </div>
+          <div class="av-caption">
+            <p class="av-word" id="avWord" aria-live="polite"></p>
+            <div class="av-tokens" id="avTokens"></div>
+          </div>
+          <button type="button" class="av-replay" id="avReplay" data-i18n-title="av.replay" data-i18n-aria-label="av.replay" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 108-8 8.5 8.5 0 00-6 2.5L4 8M4 3v5h5"/></svg>
+          </button>
+        </div>
+
+        <aside class="av-panel">
+          <section class="av-card">
+            <h2 data-i18n="av.hearingTitle"></h2>
+            <p class="hint" data-i18n="av.hearingHint"></p>
+            <div class="av-mic-row">
+              <button type="button" class="av-mic" id="avMic" data-i18n-aria-label="av.speak">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
+              </button>
+              <div class="av-mic-text">
+                <b id="avMicLabel"></b>
+                <select id="avLang" data-i18n-aria-label="tr.micLang">
+                  <option value="tg-TJ">Тоҷикӣ</option>
+                  <option value="ru-RU">Русский</option>
+                </select>
+              </div>
+            </div>
+            <textarea id="avText" rows="3" data-i18n-placeholder="av.placeholder"></textarea>
+            <button type="button" class="btn btn-primary btn-lg av-go" id="avGo">
+              <span data-i18n="av.translate"></span>
+            </button>
+            <p class="note" id="avStatus" role="status"></p>
+            <div class="av-examples">
+              <span class="hint" data-i18n="av.examples"></span>
+              <div class="av-chips" id="avExamples"></div>
+            </div>
+          </section>
+
+          <section class="av-card">
+            <h2 data-i18n="av.known"></h2>
+            <p class="hint" data-i18n="av.knownHint"></p>
+            <div class="av-chips" id="avKnown"></div>
+          </section>
+          <p class="hint" data-i18n="av.note"></p>
+        </aside>
+      </section>
+
+      <!-- ===== Страница «Идоракунӣ» (содержимое рисует src/ui/adminView.js) ===== -->
+      <section class="admin-page view" data-view="admin" hidden>
+        <div id="adminRoot"></div>
+      </section>
+
+      <!-- ===== Экран «Машқ»: тренажёр ===== -->
+      <section class="panel view practice" data-view="practice" hidden>
+        <div class="practice-card">
+          <div id="pIntro">
+            <h2 data-i18n="nav.practice"></h2>
+            <p id="pIntroText"></p>
+          </div>
+          <div id="pGame" hidden>
+            <div class="practice-top">
+              <span id="pRound"></span>
+              <b id="pScore"></b>
+            </div>
+            <p class="practice-label" data-i18n="pr.show"></p>
+            <p class="practice-word" id="pWord"></p>
+            <p class="demo-ru" id="pRu"></p>
+            <canvas class="demo-canvas" id="pCanvas"></canvas>
+            <div class="practice-timer"><span id="pTimerBar"></span></div>
+            <p class="practice-result" id="pResult" aria-live="polite"></p>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn btn-primary btn-lg" id="pStart"></button>
+            <button type="button" class="btn btn-secondary" id="pSkip" data-i18n="pr.skip" hidden></button>
+          </div>
+        </div>
+        <p class="hint" data-i18n="pr.hint"></p>
+      </section>
+
+      <!-- ===== Экран «Дар бораи ИИ»: как устроена и насколько точна наша нейросеть ===== -->
+      <section class="model-page view" data-view="model" hidden>
+        <div class="model-hero">
+          <p class="model-hero-number" id="mAccuracy">—</p>
+          <div>
+            <p class="model-hero-text" id="mAccuracyText"></p>
+            <p class="hint" id="mSource"></p>
+          </div>
+        </div>
+
+        <h2 data-i18n="model.howTitle"></h2>
+        <ol class="pipeline">
+          <li><b data-i18n="model.p1.title"></b><span data-i18n="model.p1.text"></span></li>
+          <li><b data-i18n="model.p2.title"></b><span data-i18n="model.p2.text"></span></li>
+          <li><b data-i18n="model.p3.title"></b><span data-i18n="model.p3.text"></span></li>
+          <li class="is-ours"><b data-i18n="model.p4.title"></b><span id="mArch"></span></li>
+          <li><b data-i18n="model.p5.title"></b><span data-i18n="model.p5.text"></span></li>
+        </ol>
+
+        <div class="model-grid">
+          <section>
+            <h2 data-i18n="model.curveTitle"></h2>
+            <p class="hint" data-i18n="model.curveHint"></p>
+            <div id="mCurve"></div>
+          </section>
+          <section>
+            <h2 data-i18n="model.perClassTitle"></h2>
+            <p class="hint" data-i18n="model.perClassHint"></p>
+            <div id="mPerClass"></div>
+          </section>
+        </div>
+
+        <section>
+          <h2 data-i18n="model.dataTitle"></h2>
+          <p id="mData"></p>
+          <ul class="warnings" id="mConfused"></ul>
+          <p class="hint" data-i18n="tr.sourceNote"></p>
+        </section>
+      </section>
+
+      <!-- ===== Экран «Омӯзиш»: пошаговый мастер ===== -->
+      <section class="panel view" data-view="train" hidden>
+        <p class="lead" data-i18n="train.intro"></p>
+
+        <ol class="steps" id="steps">
+          <!-- 1. Камера -->
+          <li class="step" data-step="camera">
+            <button type="button" class="step-head">
+              <span class="step-num">1</span>
+              <span class="step-title" data-i18n="step.camera.title"></span>
+              <span class="step-summary" id="sumCamera"></span>
+            </button>
+            <div class="step-body">
+              <p data-i18n="step.camera.text"></p>
+              <button type="button" class="btn btn-primary" id="btnStepCamera" data-i18n="camera.start"></button>
+            </div>
+          </li>
+
+          <!-- 2. Жесты -->
+          <li class="step" data-step="gestures">
+            <button type="button" class="step-head">
+              <span class="step-num">2</span>
+              <span class="step-title" data-i18n="step.gestures.title"></span>
+              <span class="step-summary" id="sumGestures"></span>
+            </button>
+            <div class="step-body">
+              <p data-i18n="step.gestures.text"></p>
+              <div class="record-row">
+                <label class="sr-only" for="gestureName" data-i18n="train.nameLabel"></label>
+                <input id="gestureName" list="gestureNames" autocomplete="off" maxlength="100" data-i18n-placeholder="train.namePlaceholder" />
+                <datalist id="gestureNames"></datalist>
+                <button type="button" class="btn btn-primary btn-rec" id="btnRecord">
+                  <span class="rec-dot" aria-hidden="true"></span>
+                  <span data-i18n="train.record"></span>
+                </button>
+              </div>
+              <p class="note" id="recStatus" role="status"></p>
+              <div class="gesture-list" id="gestureList"></div>
+            </div>
+          </li>
+
+          <!-- 3. «Нет жеста» -->
+          <li class="step" data-step="none">
+            <button type="button" class="step-head">
+              <span class="step-num">3</span>
+              <span class="step-title" data-i18n="step.none.title"></span>
+              <span class="step-summary" id="sumNone"></span>
+            </button>
+            <div class="step-body">
+              <p data-i18n="train.noneHint"></p>
+              <button type="button" class="btn btn-primary btn-rec" id="btnRecordNone">
+                <span class="rec-dot" aria-hidden="true"></span>
+                <span data-i18n="train.recordNone"></span>
+              </button>
+              <p class="note" id="noneStatus" role="status"></p>
+              <div class="gesture-list" id="noneList"></div>
+            </div>
+          </li>
+
+          <!-- 4. Обучение -->
+          <li class="step" data-step="train">
+            <button type="button" class="step-head">
+              <span class="step-num">4</span>
+              <span class="step-title" data-i18n="step.train.title"></span>
+              <span class="step-summary" id="sumTrain"></span>
+            </button>
+            <div class="step-body">
+              <p data-i18n="step.train.text"></p>
+              <label class="check">
+                <input type="checkbox" id="chkUseBase" checked />
+                <span data-i18n="train.useBase"></span>
+              </label>
+              <button type="button" class="btn btn-primary" id="btnTrain" data-i18n="train.train"></button>
+              <div class="progress" id="trainProgress" hidden><div class="progress-bar"></div></div>
+              <p class="note" id="trainStatus" role="status"></p>
+              <div class="train-chart" id="trainChart"></div>
+              <p class="hint" id="accNote"></p>
+              <ul class="warnings" id="warnings"></ul>
+            </div>
+          </li>
+
+          <!-- 5. Проверка -->
+          <li class="step" data-step="test">
+            <button type="button" class="step-head">
+              <span class="step-num">5</span>
+              <span class="step-title" data-i18n="step.test.title"></span>
+              <span class="step-summary"></span>
+            </button>
+            <div class="step-body">
+              <p data-i18n="step.test.text"></p>
+              <div class="live" id="liveTest">
+                <b class="live-label" id="liveLabel"></b>
+                <span class="live-conf" id="liveConf"></span>
+                <span class="live-track"><span class="live-bar" id="liveBar"></span></span>
+              </div>
+            </div>
+          </li>
+        </ol>
+
+        <details class="more">
+          <summary data-i18n="more.title"></summary>
+          <h3 data-i18n="file.title"></h3>
+          <p class="hint" data-i18n="file.hint"></p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-secondary" id="btnExport" data-i18n="file.export"></button>
+            <label class="btn btn-secondary">
+              <input type="file" id="fileImport" accept=".json,application/json" hidden />
+              <span data-i18n="file.import"></span>
+            </label>
+          </div>
+          <p class="note" id="fileStatus" role="status"></p>
+
+          <h3 data-i18n="sync.title"></h3>
+          <p class="hint" id="syncStatus"></p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-secondary" id="btnSync" data-i18n="sync.now"></button>
+          </div>
+
+          <h3 data-i18n="train.resetTitle"></h3>
+          <p class="hint" data-i18n="train.resetHint"></p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-danger" id="btnResetModel" data-i18n="train.reset"></button>
+          </div>
+
+          <h3 data-i18n="howto.title"></h3>
+          <ol class="howto">
+            <li data-i18n="howto.1"></li>
+            <li data-i18n="howto.2"></li>
+            <li data-i18n="howto.3"></li>
+            <li data-i18n="howto.4"></li>
+          </ol>
+        </details>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span data-i18n="app.footer"></span>
+      <a href="#/admin" data-i18n="nav.admin"></a>
+    </footer>
+
+    <!-- Текст крупно: для того, кто читает (ответ слышащего или фраза глухого) -->
+    <div class="bigtext" id="bigText" hidden role="dialog" aria-modal="true">
+      <p class="bigtext-value" id="bigTextValue"></p>
+      <p class="bigtext-hint" data-i18n="tr.bigClose"></p>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

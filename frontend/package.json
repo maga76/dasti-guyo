@@ -1,0 +1,26 @@
+{
+  "name": "dasti-guyo-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Дасти Гӯё — переводчик таджикского жестового языка (фронтенд)",
+  "scripts": {
+    "assets": "node scripts/fetch-assets.mjs",
+    "predev": "node scripts/fetch-assets.mjs",
+    "dev": "vite",
+    "dev:phone": "node scripts/dev-phone.mjs",
+    "prebuild": "node scripts/fetch-assets.mjs",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "vite": "^8.3.5"
+  },
+  "dependencies": {
+    "@fontsource-variable/noto-sans": "^5.3.0",
+    "@mediapipe/tasks-vision": "^1.1.1",
+    "@tensorflow/tfjs": "^4.22.0",
+    "three": "^0.186.1"
+  }
+}

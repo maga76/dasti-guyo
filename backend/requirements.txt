@@ -1,0 +1,16 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlalchemy>=2.0
+alembic>=1.13
+pydantic>=2.7
+pydantic-settings>=2.3
+PyJWT>=2.8
+passlib[bcrypt]>=1.7.4
+# passlib 1.7.4 несовместим с bcrypt 4.1+ (ошибка при проверке версии)
+bcrypt==4.0.1
+python-multipart>=0.0.9
+numpy>=1.26
+scikit-learn>=1.4
+# тесты
+pytest>=8.0
+httpx>=0.27
