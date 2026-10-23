@@ -1,0 +1,15 @@
+# systemd: бэкенд «Дасти Гӯё» (FastAPI). Ставится скриптом deploy/setup.sh
+[Unit]
+Description=Dasti Guyo API (FastAPI)
+After=network.target
+
+[Service]
+User=dasti
+Group=dasti
+WorkingDirectory=/opt/dasti-guyo/backend
+ExecStart=/opt/dasti-guyo/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
