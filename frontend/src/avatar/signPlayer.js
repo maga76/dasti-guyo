@@ -100,12 +100,12 @@ export function framesToWorld(frames, rig) {
       const k = palm * scale;
       const points = [];
       for (let i = 0; i < POINTS; i++) {
-        // Глубина: в записях Slovo знак z обратный (проверено по согнутым пальцам — они должны уходить в ладонь)
+        // MediaPipe: x вправо, y вниз, z — от камеры; у аватара y вверх, z — к зрителю
         points.push(
           new THREE.Vector3(
             wrist.x + flip * f[base + i * 3] * k,
             wrist.y - f[base + i * 3 + 1] * k,
-            wrist.z + f[base + i * 3 + 2] * k,
+            wrist.z - f[base + i * 3 + 2] * k,
           ),
         );
       }
