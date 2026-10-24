@@ -1,7 +1,14 @@
 // Простейшая навигация по адресу: #/ — «Тарҷума», #/train — «Омӯзиш», #/model — «Дар бораи ИИ».
 // Панели с атрибутом data-view показываются только на своём экране.
 
-const ROUTES = { '#/train': 'train', '#/model': 'model', '#/practice': 'practice', '#/admin': 'admin', '#/avatar': 'avatar' };
+const ROUTES = {
+  '#/train': 'train',
+  '#/model': 'model',
+  '#/practice': 'practice',
+  '#/admin': 'admin',
+  '#/avatar': 'avatar',
+  '#/profile': 'profile',
+};
 const DEFAULT = 'translate';
 
 export function currentRoute() {

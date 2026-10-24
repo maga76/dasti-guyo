@@ -7,6 +7,8 @@ import { loadBaseDataset } from '../dataset/baseDataset.js';
 import { SignDemo } from './signDemo.js';
 import { labelName } from './trainView.js';
 import { speak } from '../speech/speech.js';
+import { getUser } from '../api/api.js';
+import { savePractice } from '../api/practiceSync.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -62,6 +64,8 @@ export class PracticeView {
     this.score = 0;
     this.correct = 0;
     this.streak = 0;
+    this.history = []; // по раунду: {label, ok} — уходит в профиль
+    this.saved = null;
     this.state = 'playing';
     this.nextRound();
   }
@@ -109,6 +113,7 @@ export class PracticeView {
     this.listening = false;
     clearTimeout(this.timer);
     clearInterval(this.tick);
+    this.history.push({ label: this.target, ok: success });
     if (success) {
       const points = 10 + Math.min(this.streak, 5) * 2; // бонус за серию
       this.score += points;
@@ -136,6 +141,11 @@ export class PracticeView {
     }
     this.isRecord = this.score > best;
     this.render();
+    // В профиль: какие жесты человек уже знает
+    savePractice({ score: this.score, rounds: this.history }).then((status) => {
+      this.saved = status;
+      this.render();
+    });
   }
 
   renderTimer() {
@@ -170,11 +180,12 @@ export class PracticeView {
           : t(r.skipped ? 'pr.skipped' : 'pr.timeout');
       this.renderTimer();
     } else if (done) {
-      $('pIntroText').textContent = t(this.isRecord ? 'pr.doneRecord' : 'pr.done', {
+      const saved = this.saved === 'saved' ? 'pr.savedProfile' : getUser() ? 'pr.savedLater' : 'pr.loginToSave';
+      $('pIntroText').textContent = `${t(this.isRecord ? 'pr.doneRecord' : 'pr.done', {
         score: this.score,
         correct: this.correct,
         total: ROUNDS,
-      });
+      })} ${this.saved ? t(saved) : ''}`;
     } else {
       $('pIntroText').textContent = t(empty ? 'pr.noWords' : 'pr.intro');
     }

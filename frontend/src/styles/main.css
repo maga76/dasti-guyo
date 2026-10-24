@@ -152,11 +152,72 @@ svg:not(.chart-svg) {
   align-items: center;
   gap: 8px;
   min-height: 46px;
-  padding: 0 20px;
+  padding: 0 16px;
   border-radius: 10px;
   color: var(--muted);
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand-name {
+  white-space: nowrap;
+}
+
+/* Средняя ширина: вкладки без значков, профиль — одним кружком, чтобы всё влезло в строку */
+@media (min-width: 721px) and (max-width: 1360px) {
+  .tabs a {
+    padding: 0 12px;
+  }
+
+  .tabs a svg {
+    display: none;
+  }
+
+  .user-chip {
+    padding: 4px;
+  }
+
+  .user-chip-name {
+    display: none;
+  }
+}
+
+/* Планшет: вкладки — отдельной строкой под шапкой */
+@media (min-width: 721px) and (max-width: 940px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+
+  .tabs {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .user-chip {
+    margin-left: auto;
+  }
+}
+
+/* Узкий ноутбук / планшет: ещё теснее, «Онлайн» показываем только при проблемах */
+@media (min-width: 721px) and (max-width: 1120px) {
+  .topbar {
+    gap: 10px;
+  }
+
+  .tabs a {
+    padding: 0 9px;
+  }
+
+  .net-badge[data-state='online'] {
+    display: none;
+  }
+
+  .lang-switch button {
+    min-width: 42px;
+    padding: 0 6px;
+  }
 }
 
 .tabs a svg {
@@ -177,6 +238,59 @@ svg:not(.chart-svg) {
 .lang-switch {
   display: inline-flex;
   gap: 2px;
+}
+
+/* Профиль в шапке */
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: 200px;
+  padding: 4px 14px 4px 4px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.user-chip:hover,
+.user-chip[aria-current='page'] {
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+
+.user-chip-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.user-chip-avatar svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.user-chip.is-in .user-chip-avatar {
+  background: var(--gold);
+  color: var(--gold-ink);
+}
+
+.user-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lang-switch button {
@@ -2514,6 +2628,25 @@ body[data-route='model'] .layout {
     margin-left: auto;
   }
 
+  /* На телефоне в шапке только кружок профиля, без имени */
+  .user-chip {
+    padding: 4px;
+  }
+
+  .user-chip-name {
+    display: none;
+  }
+
+  /* «Онлайн» на телефоне не нужен — значок появляется, только когда сети или сервера нет */
+  .net-badge[data-state='online'] {
+    display: none;
+  }
+
+  .lang-switch button {
+    min-width: 42px;
+    padding: 0 6px;
+  }
+
   /* Пять вкладок не влезают — листаются пальцем по горизонтали */
   .tabs {
     order: 3;
@@ -2568,5 +2701,496 @@ body[data-route='model'] .layout {
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+  }
+}
+
+/* ---------- Экран «Профил» ---------- */
+
+body[data-route='profile'] .stage-col {
+  display: none;
+}
+
+body[data-route='profile'] .layout {
+  grid-template-columns: 1fr;
+}
+
+.profile-page {
+  max-width: 1080px;
+  width: 100%;
+}
+
+.profile-page h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-stretch: 87.5%;
+}
+
+.profile-page h2 {
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+}
+
+.pf-loading {
+  padding: 40px 0;
+  color: var(--muted);
+}
+
+/* Гость: зачем регистрироваться + форма */
+.pf-auth {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.pf-auth-intro p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.pf-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+}
+
+.pf-benefits svg {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 9px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pf-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.pf-auth-form small {
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.pf-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.pf-switch button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pf-switch button[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+}
+
+.pf-privacy {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+/* Вошёл: шапка с уровнем */
+.pf-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 24px;
+  border-radius: var(--r-lg);
+  background: var(--screen);
+  color: var(--screen-text);
+}
+
+.pf-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--gold-ink);
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.pf-hero-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.pf-hero h1 {
+  overflow-wrap: anywhere;
+}
+
+.pf-level {
+  margin: 2px 0 8px;
+  color: var(--screen-muted);
+}
+
+.pf-level b {
+  color: var(--gold);
+}
+
+.pf-progress {
+  height: 8px;
+  max-width: 420px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  overflow: hidden;
+}
+
+.pf-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gold);
+}
+
+.pf-next {
+  margin: 6px 0 0;
+  color: var(--screen-muted);
+  font-size: 0.8rem;
+}
+
+.pf-hero .btn-secondary {
+  color: var(--screen-text);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.3);
+}
+
+.pf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.pf-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.pf-card h2 {
+  margin: 0;
+}
+
+.pf-card .btn-row {
+  margin-top: auto;
+}
+
+.pf-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.pf-stats div {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+
+.pf-stats b {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-stats span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.pf-stats .is-ok b {
+  color: var(--green);
+}
+
+.pf-stats .is-wait b {
+  color: var(--series-2);
+}
+
+.pf-model {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.pf-model.is-ok {
+  background: var(--green-soft);
+  color: var(--green);
+  font-weight: 700;
+}
+
+.pf-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-bars li {
+  display: grid;
+  grid-template-columns: minmax(70px, 30%) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.pf-bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pf-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.pf-bar i.is-ok {
+  background: var(--green);
+}
+
+.pf-bar i.is-wait {
+  background: var(--series-2);
+  opacity: 0.6;
+}
+
+.pf-bar-num {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-bar-num small {
+  color: var(--series-2);
+  font-weight: 600;
+}
+
+/* Знание жестов */
+.pf-know {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pf-ring {
+  --p: 0;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, var(--surface) 76%, transparent 77%),
+    conic-gradient(var(--green) calc(var(--p) * 1%), var(--bg) 0);
+}
+
+.pf-ring b {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.pf-know-main {
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+.pf-know .muted {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.pf-history {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 56px;
+  padding: 6px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+
+.pf-history span {
+  flex: 1;
+  max-width: 22px;
+  border-radius: 4px 4px 0 0;
+  background: var(--series-1);
+}
+
+.pf-history-label {
+  margin: -6px 0 0;
+  font-size: 0.75rem;
+}
+
+.pf-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-words li,
+.pf-legend span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.pf-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.pf-legend span {
+  font-size: 0.75rem;
+}
+
+.is-known {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.is-learning {
+  background: rgb(176 120 0 / 0.14);
+  color: var(--series-2);
+}
+
+.is-hard {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.is-new {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+/* Таблица лучших */
+.pf-board {
+  margin-top: 16px;
+}
+
+.pf-board-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.pf-board h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.pf-board ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: place;
+}
+
+.pf-board li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  counter-increment: place;
+}
+
+.pf-board li::before {
+  content: counter(place);
+  width: 1.6em;
+  color: var(--muted);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-board li span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.pf-board li.is-me {
+  background: rgb(232 163 23 / 0.16);
+  font-weight: 700;
+}
+
+.pf-rules {
+  margin: 16px 0 0;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 820px) {
+  .pf-auth,
+  .pf-grid,
+  .pf-board-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .pf-hero {
+    flex-wrap: wrap;
+    padding: 18px;
+  }
+
+  .pf-hero .btn {
+    margin-left: auto;
   }
 }

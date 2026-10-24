@@ -37,6 +37,13 @@
         </a>
       </nav>
       <span class="net-badge" id="netBadge" hidden></span>
+      <!-- Профиль: гость — «Ворид шудан», вошедший — буква и имя (см. profileView.js) -->
+      <a class="user-chip" href="#/profile" data-route="profile" id="userChip">
+        <span class="user-chip-avatar" id="userChipAvatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </span>
+        <span class="user-chip-name" id="userChipName" data-i18n="pf.signIn"></span>
+      </a>
       <button type="button" class="icon-btn present-btn" id="btnPresent" data-i18n-title="present.on" data-i18n-aria-label="present.on" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
       </button>
@@ -297,6 +304,11 @@
       <!-- ===== Страница «Идоракунӣ» (содержимое рисует src/ui/adminView.js) ===== -->
       <section class="admin-page view" data-view="admin" hidden>
         <div id="adminRoot"></div>
+      </section>
+
+      <!-- ===== Экран «Профил»: регистрация, вклад в ИИ, знание жестов ===== -->
+      <section class="profile-page view" data-view="profile" hidden>
+        <div id="profileRoot"></div>
       </section>
 
       <!-- ===== Экран «Машқ»: тренажёр ===== -->

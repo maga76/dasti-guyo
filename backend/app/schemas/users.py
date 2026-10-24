@@ -20,6 +20,13 @@ class UserOut(BaseModel):
     created_at: datetime
 
 
+class RegisterIn(BaseModel):
+    """Самостоятельная регистрация: роль всегда «волонтёр»."""
+
+    username: str = Field(min_length=3, max_length=50, pattern=r"^[\w.\-]+$")
+    password: str = Field(min_length=8, max_length=72)
+
+
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50, pattern=r"^[\w.\-]+$")
     password: str = Field(min_length=8, max_length=72)

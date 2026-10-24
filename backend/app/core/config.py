@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     login_rate_limit: int = 10
     login_rate_window: int = 60
 
+    # Самостоятельная регистрация (роль «волонтёр»): не больше N аккаунтов за окно с одного IP
+    allow_registration: bool = True
+    register_rate_limit: int = 5
+    register_rate_window: int = 3600
+
     # Первый администратор (используется скриптом create_admin)
     first_admin_username: str = "admin"
     first_admin_password: str | None = None

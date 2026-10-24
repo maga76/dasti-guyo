@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import audio, auth, dictionary, models, samples, stats, tts, users
+from app.api.routes import audio, auth, dictionary, me, models, samples, stats, tts, users
 
 api_router = APIRouter()
 
@@ -10,5 +10,5 @@ def health():
     return {"status": "ok"}
 
 
-for module in (auth, users, dictionary, samples, audio, models, stats, tts):
+for module in (auth, users, dictionary, samples, audio, models, stats, tts, me):
     api_router.include_router(module.router)

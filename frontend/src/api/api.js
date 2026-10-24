@@ -1,5 +1,6 @@
-// Связь с бэкендом: вход по логину и паролю, запросы с токеном, понятные ошибки.
-// Токен хранится в sessionStorage — после закрытия браузера нужно войти снова.
+// Связь с бэкендом: регистрация, вход по логину и паролю, запросы с токеном, понятные ошибки.
+// Токен хранится в localStorage — человек остаётся в своём профиле, пока токен не устареет
+// (12 часов) или пока не нажмёт «Выйти».
 
 import { config } from '../config.js';
 import { getLang } from '../i18n/i18n.js';
@@ -20,18 +21,35 @@ export class ApiError extends Error {
 
 function storage() {
   try {
-    return window.sessionStorage;
+    return window.localStorage;
   } catch {
     return null;
   }
 }
 
 export function getToken() {
-  return storage()?.getItem(TOKEN_KEY) ?? null;
+  const token = storage()?.getItem(TOKEN_KEY) ?? null;
+  // Устаревший токен убираем сразу, чтобы не показывать «вы вошли», когда это уже не так
+  if (token && tokenExpired(token)) {
+    storage()?.removeItem(TOKEN_KEY);
+    storage()?.removeItem(USER_KEY);
+    return null;
+  }
+  return token;
+}
+
+function tokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
 }
 
 /** Текущий пользователь {id, username, role} или null. */
 export function getUser() {
+  if (!getToken()) return null;
   try {
     return JSON.parse(storage()?.getItem(USER_KEY) ?? 'null');
   } catch {
@@ -93,6 +111,13 @@ export async function api(path, { method = 'GET', body, form, timeout = 20_000 }
 export async function login(username, password) {
   const form = new URLSearchParams({ username, password });
   const data = await api('/auth/login', { method: 'POST', form });
+  setSession(data.access_token, data.user);
+  return data.user;
+}
+
+/** Регистрация (роль — волонтёр) и сразу вход. */
+export async function register(username, password) {
+  const data = await api('/auth/register', { method: 'POST', body: { username, password } });
   setSession(data.access_token, data.user);
   return data.user;
 }
