@@ -4,7 +4,7 @@
 //   - страница и словарь с сервера — сначала из сети, без сети — из кэша.
 // При изменении списка файлов увеличьте VERSION — старый кэш удалится.
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = `dasti-guyo-${VERSION}`;
 
 const PRECACHE = [
@@ -22,7 +22,8 @@ const PRECACHE = [
   'data/phrases.json',
   'data/quick-phrases.json',
   'audio/tts/index.json',
-  'avatar/avatar.glb',
+  // Аватар по умолчанию; остальные кэшируются при первом выборе
+  'avatar/male.glb',
 ];
 
 // Ответы API, которые полезно иметь без сети

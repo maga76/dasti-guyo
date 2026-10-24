@@ -13,6 +13,15 @@ import { labelName } from './trainView.js';
 
 const $ = (id) => document.getElementById(id);
 const PENDING_KEY = 'dasti-guyo:avatarText';
+const AVATAR_KEY = 'dasti-guyo:avatar';
+
+function savedAvatar() {
+  try {
+    return localStorage.getItem(AVATAR_KEY);
+  } catch {
+    return null;
+  }
+}
 const EXAMPLES = ['Салом, дӯстам!', 'Ман об мехоҳам', 'Модар дар хона', 'Ташаккур, хуб', 'Имрӯз ба мактаб', 'Ба ман ёрӣ диҳед'];
 
 export class AvatarView {
@@ -47,6 +56,12 @@ export class AvatarView {
         this.stage?.setSpeed(Number(btn.dataset.speed));
       }),
     );
+    // Выбор аватара (запоминается в браузере)
+    this.pickButtons = [...document.querySelectorAll('.av-pick button')];
+    const ids = this.pickButtons.map((b) => b.dataset.avatar);
+    this.avatarId = ids.includes(savedAvatar()) ? savedAvatar() : ids[0];
+    this.pickButtons.forEach((btn) => btn.addEventListener('click', () => this.switchAvatar(btn.dataset.avatar)));
+    this.renderPick();
     if (!Recognition) {
       $('avMic').disabled = true;
       this.setStatus('tr.micUnsupported', 'error');
@@ -114,7 +129,7 @@ export class AvatarView {
 
         const { drawHandInset } = await import('../avatar/handInset.js');
         const stage = new AvatarStage($('avCanvas'));
-        await stage.load(progress);
+        await stage.load(progress, this.avatarId);
         // Схема рук рядом с аватаром — каждый кадр, в той же позе
         stage.onPose = (pose) => drawHandInset($('avInset'), pose);
         this.stage = stage;
@@ -126,6 +141,39 @@ export class AvatarView {
       }
     })();
     return this.loading;
+  }
+
+  /** Сменить аватар: загрузить модель и повторить последнюю фразу. */
+  async switchAvatar(id) {
+    if (id === this.avatarId) return;
+    this.avatarId = id;
+    try {
+      localStorage.setItem(AVATAR_KEY, id);
+    } catch {
+      /* без localStorage — выбор действует до перезагрузки */
+    }
+    this.renderPick();
+    if (!this.stage) return; // модель ещё не грузилась — возьмёт выбранную
+    const loader = $('avLoader');
+    const text = $('avLoaderText');
+    this.pickButtons.forEach((b) => (b.disabled = true));
+    loader.hidden = false;
+    try {
+      await this.stage.load((p) => (text.textContent = t('av.loading', { percent: Math.round(p * 100) })), id);
+      loader.hidden = true;
+      if (this.lastText) this.translate(this.lastText);
+    } catch (err) {
+      // Прежняя модель остаётся на сцене
+      console.error('[avatar] Не загрузился:', err);
+      loader.hidden = true;
+      this.setStatus('av.loadError', 'error');
+    } finally {
+      this.pickButtons.forEach((b) => (b.disabled = false));
+    }
+  }
+
+  renderPick() {
+    this.pickButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.avatar === this.avatarId)));
   }
 
   renderKnown() {

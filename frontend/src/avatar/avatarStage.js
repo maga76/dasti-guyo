@@ -1,10 +1,6 @@
 // 3D-сцена с аватаром-переводчиком (Three.js).
 //
-// Модель — аватар Ready Player Me из официальных примеров Three.js (examples/models/gltf):
-// реалистичный человек с костями всех пальцев. Чтобы он выглядел как ведущий-переводчик,
-// убираем усы и перекрашиваем костюм и шляпу в тёмно-синие цвета сайта
-// (шляпу не убираем: волосы — часть той же детали).
-// Свет — студийный: тёплый основной, холодный заполняющий и золотой контровой.
+// Модели — см. AVATARS ниже. Свет — студийный: тёплый основной, холодный заполняющий и золотой контровой.
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -12,13 +8,25 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { AvatarRig } from './rig.js';
 import { SignPlayer } from './signPlayer.js';
 
-const MODEL_URL = `${import.meta.env.BASE_URL}avatar/avatar.glb`;
-const HIDE_MESHES = ['Wolf3D_Beard'];
-const TINT = {
-  Wolf3D_Outfit_Top: '#4a5f9e', // костюм — тёмно-синий (цвет умножается на текстуру)
-  Wolf3D_Outfit_Bottom: '#3a4055',
-  Wolf3D_Headwear: '#5a6688',
+// Аватары. male / female — Microsoft Rocketbox (MIT): реалистичные люди с полным скелетом кистей
+// (у каждого пальца три сустава), сконвертированы инструментом tools/rocketbox.html.
+// classic — прежний аватар Ready Player Me из примеров Three.js.
+export const AVATARS = {
+  male: { file: 'male.glb' },
+  female: { file: 'female.glb' },
+  classic: {
+    file: 'avatar.glb',
+    hide: ['Wolf3D_Beard'],
+    tint: {
+      Wolf3D_Outfit_Top: '#4a5f9e', // костюм — тёмно-синий (цвет умножается на текстуру)
+      Wolf3D_Outfit_Bottom: '#3a4055',
+      Wolf3D_Headwear: '#5a6688',
+    },
+  },
 };
+export const DEFAULT_AVATAR = 'male';
+// Ось, вокруг которой открывается рот (поперёк лица; аватар смотрит на +Z)
+const JAW_AXIS = new THREE.Vector3(1, 0, 0);
 
 export class AvatarStage {
   /** @param {HTMLCanvasElement} canvas */
@@ -66,31 +74,43 @@ export class AvatarStage {
     new ResizeObserver(() => this.resize()).observe(canvas);
   }
 
-  /** Загрузить модель. onProgress(0..1). */
-  async load(onProgress) {
-    const gltf = await new GLTFLoader().loadAsync(MODEL_URL, (e) => e.total && onProgress?.(e.loaded / e.total));
+  /** Загрузить модель (или сменить её). onProgress(0..1). */
+  async load(onProgress, avatarId = DEFAULT_AVATAR) {
+    const avatar = AVATARS[avatarId] ?? AVATARS[DEFAULT_AVATAR];
+    const url = `${import.meta.env.BASE_URL}avatar/${avatar.file}`;
+    const gltf = await new GLTFLoader().loadAsync(url, (e) => e.total && onProgress?.(e.loaded / e.total));
     const model = gltf.scene;
+    const faces = [];
     model.traverse((o) => {
       if (!o.isMesh) return;
-      if (HIDE_MESHES.includes(o.name)) o.visible = false;
+      if (avatar.hide?.includes(o.name)) o.visible = false;
       o.castShadow = true;
       o.receiveShadow = true;
       o.frustumCulled = false; // руки двигаются — не прятать «вылетевшие» за рамку части
-      const tint = TINT[o.name];
+      const tint = avatar.tint?.[o.name];
       if (tint) {
         o.material = o.material.clone();
         o.material.color.set(tint);
       }
-      if (o.morphTargetDictionary) (this.faces ??= []).push(o);
+      if (o.morphTargetDictionary) faces.push(o);
     });
+    // Смена аватара: прежняя модель уходит со сцены, проигрывание начинается заново
+    if (this.model) {
+      this.player?.stop();
+      this.scene.remove(this.model);
+    }
+    this.avatarId = avatarId in AVATARS ? avatarId : DEFAULT_AVATAR;
+    this.faces = faces;
     this.scene.add(model);
     this.model = model;
     this.rig = new AvatarRig(model);
     this.player = new SignPlayer(this.rig);
     this.spine = this.rig.bones.Spine2;
     this.head = this.rig.bones.Head;
+    this.jaw = this.rig.bones.Jaw;
     this.spineRest = this.spine?.quaternion.clone();
     this.headRest = this.head?.quaternion.clone();
+    this.jawRest = this.jaw?.quaternion.clone();
     this.frameCamera();
     this.ready = true;
     this.renderFrame(0);
@@ -190,6 +210,12 @@ export class AvatarStage {
       m.timer = 0.09 + Math.random() * 0.12;
     }
     m.open += (m.target - m.open) * Math.min(1, dt * 14);
+    // У аватаров Rocketbox нет мимики-«морфов», зато есть кость челюсти: приоткрываем рот ею
+    if (this.jaw) {
+      const parent = this.jaw.parent.getWorldQuaternion(new THREE.Quaternion());
+      const open = new THREE.Quaternion().setFromAxisAngle(JAW_AXIS, m.open * 0.22);
+      this.jaw.quaternion.copy(parent.clone().invert().multiply(open).multiply(parent).multiply(this.jawRest));
+    }
     for (const mesh of this.faces ?? []) {
       const dict = mesh.morphTargetDictionary;
       if (dict.mouthOpen !== undefined) mesh.morphTargetInfluences[dict.mouthOpen] = m.open;

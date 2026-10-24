@@ -1412,6 +1412,45 @@ body[data-route='avatar'] .layout {
   color: #0a1020;
 }
 
+/* Выбор аватара — слева сверху, под значком */
+.av-pick {
+  position: absolute;
+  top: 70px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.av-pick button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: rgb(255 255 255 / 0.7);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.av-pick button[aria-pressed='true'] {
+  background: #fff;
+  color: #0a1020;
+}
+
+.av-pick button:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
 /* Схема рук: точная форма кисти рядом с аватаром */
 .av-inset {
   position: absolute;
@@ -1450,6 +1489,17 @@ body[data-route='avatar'] .layout {
 
   .av-inset canvas {
     height: 96px;
+  }
+
+  .av-pick {
+    top: 64px;
+    left: 12px;
+  }
+
+  .av-pick button {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 0.75rem;
   }
 }
 

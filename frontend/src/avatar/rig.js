@@ -34,6 +34,9 @@ const LIMITS = {
 // У левой и правой руки он противоположный (зеркальные руки). Проверено на кулаке (tests/avatar-test.html?curl=1.4).
 export const PALM_SIGN = { Right: 1, Left: -1 };
 
+// Доля поворота кисти вокруг оси предплечья, которую делает само предплечье
+const TWIST_SHARE = 0.6;
+
 const clamp = (v, [lo, hi]) => Math.min(hi, Math.max(lo, v));
 
 const _v1 = new THREE.Vector3();
@@ -66,10 +69,10 @@ function aim(bone, child, target) {
   setWorldQuaternion(bone, _q2.multiply(_q1));
 }
 
-/** Направление кости к её первому дочернему суставу (мировое). */
+/** Направление кости к следующему суставу пальца (или к первому дочернему суставу), мировое. */
 function boneDir(bone) {
   bone.updateMatrixWorld(true);
-  const child = bone.children.find((c) => c.isBone);
+  const child = bone.userData.next ?? bone.children.find((c) => c.isBone);
   return worldPos(child, new THREE.Vector3()).sub(worldPos(bone, new THREE.Vector3())).normalize();
 }
 
@@ -95,7 +98,8 @@ export class AvatarRig {
     this.model = model;
     this.bones = {};
     model.traverse((o) => {
-      if (o.isBone) this.bones[o.name] = o;
+      // Кончики пальцев (…Index4) у аватаров Rocketbox — не кости скелета, а пустые точки
+      if (o.isBone || /^(Left|Right)Hand(Thumb|Index|Middle|Ring|Pinky)4$/.test(o.name)) this.bones[o.name] = o;
     });
     model.updateMatrixWorld(true);
 
@@ -117,7 +121,13 @@ export class AvatarRig {
         upperLen: worldPos(arm).distanceTo(worldPos(fore)),
         foreLen: worldPos(fore).distanceTo(worldPos(hand)),
         palmLen: worldPos(hand).distanceTo(worldPos(b('HandMiddle1'))),
-        fingers: Object.fromEntries(Object.keys(FINGERS).map((f) => [f, [1, 2, 3, 4].map((i) => b(`Hand${f}${i}`))])),
+        fingers: Object.fromEntries(
+          Object.keys(FINGERS).map((f) => {
+            const chain = [1, 2, 3, 4].map((i) => b(`Hand${f}${i}`));
+            chain.slice(0, 3).forEach((bone, i) => (bone.userData.next = chain[i + 1]));
+            return [f, chain];
+          }),
+        ),
         // Плавность: предыдущие решённые повороты костей
         smooth: new Map(),
       };
@@ -206,7 +216,30 @@ export class AvatarRig {
     basis(targetForward, targetSide, _m2);
     const delta = new THREE.Quaternion().setFromRotationMatrix(_m2.multiply(_m1.transpose()));
     side.hand.getWorldQuaternion(_q2);
-    setWorldQuaternion(side.hand, delta.multiply(_q2));
+    const target = delta.multiply(_q2);
+    this.shareTwist(side, target);
+    setWorldQuaternion(side.hand, target);
+  }
+
+  /**
+   * Поворот кисти вокруг оси предплечья у человека делают кости предплечья, а не запястье.
+   * Если крутить только кисть, кожа на запястье «перекручивается фантиком».
+   * Поэтому часть поворота (TWIST_SHARE) отдаём предплечью — его вращение вокруг своей оси
+   * не сдвигает запястье.
+   */
+  shareTwist(side, handWorld) {
+    const fore = side.fore;
+    const axis = boneDir(fore);
+    const foreWorld = fore.getWorldQuaternion(new THREE.Quaternion());
+    // Поворот кисти относительно предплечья сверх исходной позы — в системе предплечья
+    const local = foreWorld.clone().invert().multiply(handWorld);
+    const rel = local.multiply(this.rest.get(side.hand).clone().invert());
+    const axisLocal = axis.clone().applyQuaternion(foreWorld.clone().invert());
+    const proj = new THREE.Vector3(rel.x, rel.y, rel.z).dot(axisLocal);
+    let twist = 2 * Math.atan2(proj, rel.w);
+    if (twist > Math.PI) twist -= 2 * Math.PI;
+    if (twist < -Math.PI) twist += 2 * Math.PI;
+    rotateWorld(fore, axis, twist * TWIST_SHARE);
   }
 
   /** Направление «внутрь ладони» (куда сгибаются пальцы) для кисти аватара, в мировых координатах. */

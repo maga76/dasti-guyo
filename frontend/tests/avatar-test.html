@@ -40,7 +40,8 @@
             const { drawHandInset } = await import('../src/avatar/handInset.js');
             stage.onPose = (pose) => drawHandInset(inset, pose);
           }
-          await stage.load();
+          // ?avatar=male|female|classic
+          await stage.load(null, params.get('avatar') ?? undefined);
           // ?curl=1.4 — согнуть все пальцы на этот угол (проверка, что пальцы гнутся к ладони)
           if (params.has('curl')) stage.rig.debugCurl = Number(params.get('curl'));
           stage.play([{ label: word, frames: reps.get(word) }]);

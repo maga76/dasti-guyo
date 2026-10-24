@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rocketbox → GLB</title>
+  </head>
+  <body>
+    <pre id="log">Конвертация…</pre>
+    <script type="module">
+      import { convert } from './rocketbox.js';
+
+      const name = new URLSearchParams(location.search).get('name') ?? 'Male_Adult_08';
+      const { glb, log } = await convert(name);
+      document.getElementById('log').textContent = `${name}: ${(glb.byteLength / 1024 / 1024).toFixed(2)} МБ\n${log.join('\n')}`;
+      // Для автоматической сборки (headless-браузер забирает результат отсюда)
+      window.result = glb;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([glb], { type: 'model/gltf-binary' }));
+      a.download = `${name}.glb`;
+      a.textContent = `Скачать ${name}.glb`;
+      document.body.append(a);
+      document.title = 'DONE';
+    </script>
+  </body>
+</html>

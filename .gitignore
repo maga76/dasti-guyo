@@ -27,3 +27,6 @@ backend/data/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Временные исходники аватаров (конвертация FBX → GLB)
+frontend/public/_rb/
