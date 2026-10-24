@@ -11,6 +11,7 @@ import { flushPractice } from '../api/practiceSync.js';
 import { db } from '../dataset/db.js';
 import { loadBaseDataset } from '../dataset/baseDataset.js';
 import { labelName } from './trainView.js';
+import { passwordField } from './passwordField.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -174,9 +175,9 @@ export class ProfileView {
             ${reg ? `<small class="muted">${esc(t('pf.nameHint'))}</small>` : ''}
           </label>
           <label class="field">${esc(t('ad.password'))}
-            <input name="password" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" maxlength="72" required />
+            ${passwordField({ name: 'password', autocomplete: reg ? 'new-password' : 'current-password', attrs: 'maxlength="72" required' })}
           </label>
-          ${reg ? `<label class="field">${esc(t('pf.password2'))}<input name="password2" type="password" autocomplete="new-password" maxlength="72" required /></label>` : ''}
+          ${reg ? `<label class="field">${esc(t('pf.password2'))}${passwordField({ name: 'password2', autocomplete: 'new-password', attrs: 'maxlength="72" required' })}</label>` : ''}
           ${this.message ? `<p class="note is-error" role="alert">${esc(this.message)}</p>` : ''}
           <button type="submit" class="btn btn-primary btn-lg">${esc(t(reg ? 'pf.registerBtn' : 'pf.loginBtn'))}</button>
           <p class="muted pf-privacy">${esc(t('pf.privacy'))}</p>

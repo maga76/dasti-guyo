@@ -2044,6 +2044,49 @@ body[data-route='admin'] .layout {
   font-size: 1rem;
 }
 
+/* Поле пароля с кнопкой «глаз» (ui/passwordField.js) */
+.pw-field {
+  position: relative;
+  display: flex;
+}
+
+.pw-field input {
+  flex: 1;
+  width: 100%;
+  padding-right: 56px;
+}
+
+.pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.pw-toggle:hover,
+.pw-toggle[aria-pressed='true'] {
+  color: var(--text);
+}
+
+.pw-toggle svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .field input:focus,
 .admin-form input:focus {
   outline: none;

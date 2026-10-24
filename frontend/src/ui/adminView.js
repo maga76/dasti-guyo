@@ -4,6 +4,7 @@
 
 import { getLang, onLangChange, t } from '../i18n/i18n.js';
 import { ApiError, api, getUser, isAdmin, login, logout, onAuthChange } from '../api/api.js';
+import { passwordField } from './passwordField.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -90,7 +91,7 @@ export class AdminView {
         <h1>${esc(t('ad.loginTitle'))}</h1>
         <p class="hint">${esc(t('ad.loginHint'))}</p>
         <label class="field"><span>${esc(t('ad.username'))}</span><input name="username" autocomplete="username" required /></label>
-        <label class="field"><span>${esc(t('ad.password'))}</span><input name="password" type="password" autocomplete="current-password" required /></label>
+        <label class="field"><span>${esc(t('ad.password'))}</span>${passwordField({ name: 'password', autocomplete: 'current-password', attrs: 'required' })}</label>
         <button type="submit" class="btn btn-primary btn-lg">${esc(t('ad.login'))}</button>
         ${msg ? `<p class="note is-error">${esc(msg.text)}</p>` : ''}
       </form>`;

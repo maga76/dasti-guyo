@@ -20,6 +20,7 @@ import { PracticeView } from './ui/practiceView.js';
 import { AdminView } from './ui/adminView.js';
 import { AvatarView } from './ui/avatarView.js';
 import { ProfileView } from './ui/profileView.js';
+import { initPasswordToggles } from './ui/passwordField.js';
 import { initNetworkBadge } from './ui/network.js';
 import { initRouter } from './ui/router.js';
 import { api } from './api/api.js';
@@ -54,6 +55,7 @@ const modelView = new ModelView({ classifier });
 const adminView = new AdminView();
 const avatarView = new AvatarView();
 const profileView = new ProfileView();
+initPasswordToggles();
 new ReplyView();
 const onModelChange = () => {
   translateView.update();
