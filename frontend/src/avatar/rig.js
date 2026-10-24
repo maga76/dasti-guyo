@@ -20,15 +20,15 @@ const FINGERS = {
   Pinky: [17, 18, 19, 20],
 };
 
-// Пределы суставов, радианы: палец не гнётся назад и не сгибается сильнее, чем у человека
-const LIMITS = {
-  mcp: [-0.15, 1.6],
-  pip: [0, 1.9],
-  dip: [0, 1.4],
-  spread: [-0.3, 0.3],
-  thumbMcp: [0, 1.0],
-  thumbIp: [0, 1.3],
-};
+// Пределы суставов, радианы, — как у живой руки. Для каждого сустава пальца: сгиб к ладони
+// (отрицательный — назад) и отклонение вбок относительно предыдущей фаланги.
+const FINGER_LIMITS = [
+  { flex: [-0.3, 1.65], side: [-0.35, 0.35] }, // основание пальца
+  { flex: [0, 1.95], side: [-0.08, 0.08] }, // средний сустав
+  { flex: [-0.1, 1.5], side: [-0.08, 0.08] }, // концевой сустав
+];
+// Большой палец: наибольший угол между соседними фалангами
+const THUMB_LIMITS = [1.0, 1.3];
 
 // Знак нормали ладони (cross(вперёд, мизинец→указательный)) так, чтобы она смотрела внутрь ладони.
 // У левой и правой руки он противоположный (зеркальные руки). Проверено по скелетам всех аватаров:
@@ -39,6 +39,52 @@ export const PALM_SIGN = { Right: -1, Left: 1 };
 const TWIST_SHARE = 0.6;
 
 const clamp = (v, [lo, hi]) => Math.min(hi, Math.max(lo, v));
+
+/**
+ * Направления фаланг пальца с записи → в пределах живой руки.
+ * Каждая фаланга раскладывается относительно предыдущей на сгиб (вокруг оси hinge) и отклонение вбок.
+ * @param {THREE.Vector3} meta направление пястной кости (запястье → основание пальца)
+ * @param {THREE.Vector3[]} segs три фаланги
+ * @param {THREE.Vector3} hinge ось сгиба (+угол — в ладонь); всё — в системе ладони
+ */
+function constrainFinger(meta, segs, hinge) {
+  const out = [];
+  let prev = meta;
+  segs.forEach((d, i) => {
+    const lim = FINGER_LIMITS[i];
+    const prevSide = Math.asin(clamp(prev.dot(hinge), [-1, 1]));
+    const prevIn = prev.clone().addScaledVector(hinge, -prev.dot(hinge)).normalize();
+    const dIn = d.clone().addScaledVector(hinge, -d.dot(hinge));
+    let flex = 0;
+    if (dIn.lengthSq() > 1e-8) {
+      dIn.normalize();
+      flex = Math.atan2(_v1.crossVectors(prevIn, dIn).dot(hinge), prevIn.dot(dIn));
+    }
+    // Сгиб назад больше чем на ~35° у основания (и любой — в средних суставах) живой палец не делает:
+    // это ошибка глубины, когда кисть видна с ребра. Знак угла перепутан — считаем сгибом в ладонь.
+    if (i === 0 ? flex < -0.6 : flex < 0) flex = -flex;
+    flex = clamp(flex, lim.flex);
+    const side = prevSide + clamp(Math.asin(clamp(d.dot(hinge), [-1, 1])) - prevSide, lim.side);
+    const dir = prevIn.applyAxisAngle(hinge, flex).multiplyScalar(Math.cos(side)).addScaledVector(hinge, Math.sin(side)).normalize();
+    out.push(dir);
+    prev = dir;
+  });
+  return out;
+}
+
+/** Большой палец: направления с записи, угол между соседними фалангами — не больше предела. */
+function constrainThumb(segs) {
+  const out = [segs[0]];
+  for (let i = 1; i < 3; i++) {
+    const prev = out[i - 1];
+    let dir = segs[i];
+    const angle = Math.acos(clamp(prev.dot(dir), [-1, 1]));
+    const limit = THUMB_LIMITS[i - 1];
+    if (angle > limit) dir = prev.clone().lerp(dir, limit / angle).normalize();
+    out.push(dir);
+  }
+  return out;
+}
 
 const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
@@ -132,6 +178,7 @@ export class AvatarRig {
         // Плавность: предыдущие решённые повороты костей
         smooth: new Map(),
       };
+      this.sides[side].fingerRest = this.captureFingerRest(this.sides[side]);
     }
 
     // Опорные точки тела: плечи и «центр кадра записи» — чуть ниже плеч
@@ -149,40 +196,37 @@ export class AvatarRig {
       for (const bone of [side.arm, side.fore, side.hand, ...Object.values(side.fingers).flat()]) {
         bone.quaternion.copy(this.rest.get(bone));
       }
-      side.hand.scale.setScalar(1); // кисть аватара могла быть спрятана точной кистью (см. placeExactHand)
     }
     this.model.updateMatrixWorld(true);
   }
 
   /**
-   * Подключить точные кисти (exactHands.js): они заменяют кисти аватара и повторяют
-   * запись точка в точку. Без них пальцы аватара гнутся по углам (solveFingers).
+   * Исходная поза пальцев в системе координат ладони: для каждой фаланги — её направление
+   * и поворот. От неё считается любая новая поза (см. solveFingers).
    */
-  setExactHands(hands) {
-    this.exact = hands;
-    for (const side of Object.values(this.sides)) side.exactRel = null;
+  captureFingerRest(side) {
+    const palmQ = this.palmQuaternion(side);
+    const inv = palmQ.clone().invert();
+    const rest = new Map();
+    for (const bones of Object.values(side.fingers)) {
+      for (let i = 0; i < 3; i++) {
+        const bone = bones[i];
+        rest.set(bone, {
+          dir: worldPos(bones[i + 1]).sub(worldPos(bone)).normalize().applyQuaternion(inv),
+          q: inv.clone().multiply(bone.getWorldQuaternion(new THREE.Quaternion())),
+        });
+      }
+    }
+    return rest;
   }
 
-  /** 21 точка «как у MediaPipe» по костям кисти аватара — его спокойная поза. */
-  ownHandPoints(side) {
-    const f = side.fingers;
-    return [side.hand, ...['Thumb', 'Index', 'Middle', 'Ring', 'Pinky'].flatMap((name) => f[name])].map((b) => worldPos(b));
-  }
-
-  /** Поставить точную кисть на запястье аватара, а его собственную кисть спрятать. */
-  placeExactHand(side, sideName, points) {
-    const src = points ?? this.ownHandPoints(side);
-    // Форма кисти относительно запястья, сглаженная во времени (как и повороты костей)
-    const first = !side.exactRel;
-    side.exactRel ??= src.map(() => new THREE.Vector3());
-    src.forEach((p, i) => {
-      const rel = _v1.subVectors(p, src[0]);
-      if (first) side.exactRel[i].copy(rel);
-      else side.exactRel[i].lerp(rel, this.smoothing);
-    });
-    this.exact[sideName].pose(side.exactRel, worldPos(side.hand), side.palmLen);
-    side.hand.scale.setScalar(1e-3);
+  /** Поворот «системы ладони» кисти аватара: вперёд — к среднему пальцу, вбок — к указательному. */
+  palmQuaternion(side) {
     side.hand.updateMatrixWorld(true);
+    const f = side.fingers;
+    const hand = worldPos(side.hand);
+    basis(worldPos(f.Middle[0]).sub(hand), worldPos(f.Index[0]).sub(worldPos(f.Pinky[0])), _m1);
+    return new THREE.Quaternion().setFromRotationMatrix(_m1);
   }
 
   /**
@@ -196,12 +240,11 @@ export class AvatarRig {
     this.solveArm(side, sideName, target);
     if (points) {
       this.orientHand(side, points);
-      if (!this.exact) this.solveFingers(side, sideName, points);
+      this.solveFingers(side, sideName, points);
     } else {
       this.relaxHand(side);
     }
     this.applySmoothing(side);
-    if (this.exact) this.placeExactHand(side, sideName, points);
   }
 
   /** Где кисть в спокойной позе: рука опущена вдоль тела, чуть согнута в локте. */
@@ -276,95 +319,44 @@ export class AvatarRig {
     rotateWorld(fore, axis, twist * TWIST_SHARE);
   }
 
-  /** Направление «внутрь ладони» (куда сгибаются пальцы) для кисти аватара, в мировых координатах. */
-  palmInward(side, sideName) {
-    side.hand.updateMatrixWorld(true);
-    const f = side.fingers;
-    const forward = worldPos(f.Middle[0]).sub(worldPos(side.hand));
-    const across = worldPos(f.Index[0]).sub(worldPos(f.Pinky[0]));
-    return new THREE.Vector3().crossVectors(forward, across).normalize().multiplyScalar(PALM_SIGN[sideName]);
-  }
-
   /**
-   * Пальцы по углам сгиба. Направление каждой фаланги с видео шумное (особенно глубина),
-   * а угол между соседними отрезками — устойчивый. Поэтому для каждого сустава берём угол
-   * сгиба и сгибаем палец аватара только к ладони, в пределах, как у живой руки.
+   * Пальцы. Каждая фаланга аватара ставится по направлению своего отрезка на записи — в системе
+   * координат ладони; поворот кости = исходный + наименьший поворот к новому направлению
+   * (так кожа и ногти поворачиваются вместе с пальцем). Шум записи гасят пределы суставов,
+   * как у живой руки: палец не выгибается назад и не гнётся вбок в средних суставах.
    */
   solveFingers(side, sideName, p) {
-    const inward = this.palmInward(side, sideName);
-    // Ладонь на записи: та же формула, что и для аватара (руки одной стороны)
-    const tForward = p[9].clone().sub(p[0]);
-    const tAcross = p[5].clone().sub(p[17]);
-    const tInward = new THREE.Vector3().crossVectors(tForward, tAcross).normalize().multiplyScalar(PALM_SIGN[sideName]);
-    const across = worldPos(side.fingers.Index[0]).sub(worldPos(side.fingers.Pinky[0])).normalize();
-
+    const palmQ = this.palmQuaternion(side); // кисть аватара уже повёрнута как на записи (orientHand)
+    basis(p[9].clone().sub(p[0]), p[5].clone().sub(p[17]), _m2);
+    const dataInv = new THREE.Quaternion().setFromRotationMatrix(_m2).invert();
+    const local = (a, b) => p[b].clone().sub(p[a]).normalize().applyQuaternion(dataInv);
+    // Ось сгиба в системе ладони: поворот вокруг неё на +угол ведёт палец в ладонь
+    const hinge = new THREE.Vector3(0, -PALM_SIGN[sideName], 0);
+    const curl = this.debugCurl;
     for (const name of ['Index', 'Middle', 'Ring', 'Pinky']) {
       const [m, pip, dip, tip] = FINGERS[name];
-      const meta = p[m].clone().sub(p[0]).normalize();
-      const s1 = p[pip].clone().sub(p[m]).normalize();
-      const s2 = p[dip].clone().sub(p[pip]).normalize();
-      const s3 = p[tip].clone().sub(p[dip]).normalize();
-
-      const curl = this.debugCurl;
-      // Сильный «сгиб назад» живой палец не делает — это ошибка глубины, когда кисть видна с ребра
-      // (палец сложен почти вдвое, но знак угла перепутан). Считаем такой сгиб сгибом в ладонь.
-      let rawMcp = Math.atan2(s1.dot(tInward), s1.dot(meta));
-      if (rawMcp < -0.6) rawMcp = -rawMcp;
-      const flexMcp = curl ?? clamp(rawMcp, LIMITS.mcp);
-      const flexPip = curl ?? clamp(Math.acos(clamp(s1.dot(s2), [-1, 1])), LIMITS.pip);
-      // Средний и концевой суставы у человека сгибаются вместе (~2:3) — это гасит шум
-      const rawDip = clamp(Math.acos(clamp(s2.dot(s3), [-1, 1])), LIMITS.dip);
-      const flexDip = curl ?? 0.5 * rawDip + 0.5 * 0.67 * flexPip;
-      // Развод пальцев в плоскости ладони — относительно направления пястной кости
-      // (естественный «веер» пальцев у модели уже есть, его не удваиваем)
-      const inPalm = (v) => v.clone().addScaledVector(tInward, -v.dot(tInward)).normalize();
-      const acrossN = tAcross.clone().normalize();
-      const spread =
-        curl != null ? 0 : clamp(Math.asin(clamp(inPalm(s1).dot(acrossN), [-1, 1])) - Math.asin(clamp(inPalm(meta).dot(acrossN), [-1, 1])), LIMITS.spread);
-
-      const [b1, b2, b3] = side.fingers[name];
-      // Развод: поворот вокруг нормали ладони
-      rotateWorld(b1, inward, spread * Math.sign(new THREE.Vector3().crossVectors(inward, boneDir(b1)).dot(across) || 1));
-      // Сгиб: три сустава — петли с общей осью, поперечной пальцу
-      const axis = new THREE.Vector3().crossVectors(boneDir(b1), inward).normalize();
-      rotateWorld(b1, axis, flexMcp);
-      rotateWorld(b2, axis, flexPip);
-      rotateWorld(b3, axis, flexDip);
+      const dirs =
+        curl != null
+          ? this.curledDirs(side, name, hinge, curl)
+          : constrainFinger(local(0, m), [local(m, pip), local(pip, dip), local(dip, tip)], hinge);
+      this.poseChain(side, side.fingers[name], dirs, palmQ);
     }
-    this.solveThumb(side, p);
+    const thumb = curl != null ? this.curledDirs(side, 'Thumb', hinge, curl) : constrainThumb([local(1, 2), local(2, 3), local(3, 4)]);
+    this.poseChain(side, side.fingers.Thumb, thumb, palmQ);
   }
 
-  /**
-   * Большой палец: каждая фаланга — вдоль своего отрезка на записи. Он толстый и виден
-   * отдельно от остальных пальцев, поэтому его точки надёжные. Сгиб ограничен, как у человека.
-   */
-  solveThumb(side, p) {
-    const [t1, t2, t3, t4] = side.fingers.Thumb;
-    if (this.debugCurl != null) {
-      const palmCenter = worldPos(side.fingers.Middle[0]).add(worldPos(side.hand)).multiplyScalar(0.5);
-      for (const bone of [t2, t3]) {
-        const d = boneDir(bone);
-        const toPalm = palmCenter.clone().sub(worldPos(bone));
-        toPalm.addScaledVector(d, -toPalm.dot(d)).normalize();
-        rotateWorld(bone, new THREE.Vector3().crossVectors(d, toPalm).normalize(), this.debugCurl);
-      }
-      return;
+  /** Три фаланги по направлениям (в системе ладони) — от основания к кончику. */
+  poseChain(side, bones, dirs, palmQ) {
+    for (let i = 0; i < 3; i++) {
+      const rest = side.fingerRest.get(bones[i]);
+      const swing = new THREE.Quaternion().setFromUnitVectors(rest.dir, dirs[i]);
+      setWorldQuaternion(bones[i], palmQ.clone().multiply(swing).multiply(rest.q));
     }
-    const seg = (i) => p[i + 1].clone().sub(p[i]).normalize();
-    const a = seg(1);
-    aim(t1, t2, worldPos(t1).add(a));
-    // Каждый следующий отрезок отклоняем от предыдущего не больше предела сустава
-    let prev = a;
-    for (const [bone, child, i, limit] of [
-      [t2, t3, 2, LIMITS.thumbMcp[1]],
-      [t3, t4, 3, LIMITS.thumbIp[1]],
-    ]) {
-      let dir = seg(i);
-      const angle = Math.acos(clamp(prev.dot(dir), [-1, 1]));
-      if (angle > limit) dir = prev.clone().lerp(dir, limit / angle).normalize();
-      aim(bone, child, worldPos(bone).add(dir));
-      prev = dir;
-    }
+  }
+
+  /** Проверка (tests/avatar-test.html?curl=1.2): все суставы согнуты на один угол. */
+  curledDirs(side, name, hinge, angle) {
+    return side.fingers[name].slice(0, 3).map((bone, i) => side.fingerRest.get(bone).dir.clone().applyAxisAngle(hinge, angle * (i + 1)));
   }
 
   /** Спокойная кисть: пальцы слегка согнуты. */

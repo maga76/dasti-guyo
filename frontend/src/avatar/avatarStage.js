@@ -7,19 +7,16 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { AvatarRig } from './rig.js';
 import { SignPlayer } from './signPlayer.js';
-import { loadExactHands } from './exactHands.js';
 import { assetUrls, download } from '../net/download.js';
 
 // Аватары. male / female — Microsoft Rocketbox (MIT): реалистичные люди с полным скелетом кистей
 // (у каждого пальца три сустава), сконвертированы инструментом tools/rocketbox.html.
 // classic — прежний аватар Ready Player Me из примеров Three.js.
-// skin — цвет точных кистей (exactHands.js) под цвет кожи аватара.
 export const AVATARS = {
-  male: { file: 'male.glb', skin: '#c48c6c' },
-  female: { file: 'female.glb', skin: '#d7a387' },
+  male: { file: 'male.glb' },
+  female: { file: 'female.glb' },
   classic: {
     file: 'avatar.glb',
-    skin: '#e8b89c',
     hide: ['Wolf3D_Beard'],
     tint: {
       Wolf3D_Outfit_Top: '#4a5f9e', // костюм — тёмно-синий (цвет умножается на текстуру)
@@ -110,13 +107,6 @@ export class AvatarStage {
     this.scene.add(model);
     this.model = model;
     this.rig = new AvatarRig(model);
-    // Точные кисти: грузятся один раз, при смене аватара только перекрашиваются
-    this.hands ??= await loadExactHands(avatar.skin);
-    for (const hand of Object.values(this.hands)) {
-      hand.mesh.material.color.set(avatar.skin);
-      this.scene.add(hand.root);
-    }
-    this.rig.setExactHands(this.hands);
     this.player = new SignPlayer(this.rig);
     this.spine = this.rig.bones.Spine2;
     this.head = this.rig.bones.Head;
