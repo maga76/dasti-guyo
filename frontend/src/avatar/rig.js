@@ -149,8 +149,40 @@ export class AvatarRig {
       for (const bone of [side.arm, side.fore, side.hand, ...Object.values(side.fingers).flat()]) {
         bone.quaternion.copy(this.rest.get(bone));
       }
+      side.hand.scale.setScalar(1); // кисть аватара могла быть спрятана точной кистью (см. placeExactHand)
     }
     this.model.updateMatrixWorld(true);
+  }
+
+  /**
+   * Подключить точные кисти (exactHands.js): они заменяют кисти аватара и повторяют
+   * запись точка в точку. Без них пальцы аватара гнутся по углам (solveFingers).
+   */
+  setExactHands(hands) {
+    this.exact = hands;
+    for (const side of Object.values(this.sides)) side.exactRel = null;
+  }
+
+  /** 21 точка «как у MediaPipe» по костям кисти аватара — его спокойная поза. */
+  ownHandPoints(side) {
+    const f = side.fingers;
+    return [side.hand, ...['Thumb', 'Index', 'Middle', 'Ring', 'Pinky'].flatMap((name) => f[name])].map((b) => worldPos(b));
+  }
+
+  /** Поставить точную кисть на запястье аватара, а его собственную кисть спрятать. */
+  placeExactHand(side, sideName, points) {
+    const src = points ?? this.ownHandPoints(side);
+    // Форма кисти относительно запястья, сглаженная во времени (как и повороты костей)
+    const first = !side.exactRel;
+    side.exactRel ??= src.map(() => new THREE.Vector3());
+    src.forEach((p, i) => {
+      const rel = _v1.subVectors(p, src[0]);
+      if (first) side.exactRel[i].copy(rel);
+      else side.exactRel[i].lerp(rel, this.smoothing);
+    });
+    this.exact[sideName].pose(side.exactRel, worldPos(side.hand), side.palmLen);
+    side.hand.scale.setScalar(1e-3);
+    side.hand.updateMatrixWorld(true);
   }
 
   /**
@@ -164,11 +196,12 @@ export class AvatarRig {
     this.solveArm(side, sideName, target);
     if (points) {
       this.orientHand(side, points);
-      this.solveFingers(side, sideName, points);
+      if (!this.exact) this.solveFingers(side, sideName, points);
     } else {
       this.relaxHand(side);
     }
     this.applySmoothing(side);
+    if (this.exact) this.placeExactHand(side, sideName, points);
   }
 
   /** Где кисть в спокойной позе: рука опущена вдоль тела, чуть согнута в локте. */
