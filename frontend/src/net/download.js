@@ -17,7 +17,9 @@ const useCdn = !import.meta.env.DEV || new URLSearchParams(location.search).has(
 
 const CACHE = 'dasti-guyo-files-v1';
 const CHUNK = 512 * 1024;
-const STALL_MS = 20_000; // столько ждём новых байт, прежде чем считать загрузку зависшей
+// Столько ждём новых байт, прежде чем считать загрузку зависшей. На медленном мобильном
+// интернете первый ответ иногда идёт 20–30 с — обрывать раньше хуже, чем подождать.
+const STALL_MS = 45_000;
 const CHUNK_RETRIES = 6;
 
 /** Адреса файла из public/: CDN (если доступен) и наш сервер. */
