@@ -12,10 +12,10 @@ import { db } from '../dataset/db.js';
 import { FEATURE_VERSION, INPUT_SIZE, augment, sequenceFeatures } from '../dataset/features.js';
 import { MIN_SAMPLES, NONE_LABEL } from '../dataset/dataset.js';
 import { loadBaseDataset, loadBaseMetrics } from '../dataset/baseDataset.js';
+import { assetUrls, download, downloadJson, importRetry } from '../net/download.js';
 
 const MODEL_URL = 'indexeddb://dasti-guyo-local-model-v2';
 const META_KEY = 'localModel';
-const BASE_MODEL_URL = `${import.meta.env.BASE_URL}models/base/model.json`;
 const SERVER_MODEL_URL = 'indexeddb://dasti-guyo-server-model';
 const SERVER_META_KEY = 'serverModel';
 
@@ -27,11 +27,41 @@ const EPOCHS = 25;
 // TensorFlow.js большой (~1 МБ), поэтому грузим его только когда он нужен
 let tfPromise = null;
 export function loadTf() {
-  tfPromise ??= import('@tensorflow/tfjs').then(async (tf) => {
-    await tf.ready(); // сам выберет WebGL, а если его нет — CPU
-    return tf;
-  });
+  tfPromise ??= importRetry(() => import('@tensorflow/tfjs'))
+    .then(async (tf) => {
+      await tf.ready(); // сам выберет WebGL, а если его нет — CPU
+      return tf;
+    })
+    .catch((err) => {
+      tfPromise = null; // в следующий раз попробуем снова
+      throw err;
+    });
   return tfPromise;
+}
+
+/** Базовая модель (public/models/base): описание и веса качаются надёжно (CDN → наш сервер). */
+async function loadBaseModel(tf) {
+  const json = await downloadJson(assetUrls('models/base/model.json'));
+  const parts = await Promise.all(
+    json.weightsManifest.flatMap((group) => group.paths).map((p) => download(assetUrls(`models/base/${p}`))),
+  );
+  const weightData = new Uint8Array(parts.reduce((n, p) => n + p.byteLength, 0));
+  let offset = 0;
+  for (const p of parts) {
+    weightData.set(new Uint8Array(p), offset);
+    offset += p.byteLength;
+  }
+  return tf.loadLayersModel(
+    tf.io.fromMemory({
+      modelTopology: json.modelTopology,
+      weightSpecs: json.weightsManifest.flatMap((group) => group.weights),
+      weightData: weightData.buffer,
+      format: json.format,
+      generatedBy: json.generatedBy,
+      convertedBy: json.convertedBy,
+      userDefinedMetadata: json.userDefinedMetadata,
+    }),
+  );
 }
 
 export class TrainError extends Error {
@@ -134,7 +164,7 @@ export class GestureClassifier {
   async loadBase() {
     const tf = await loadTf();
     try {
-      const [model, metrics] = await Promise.all([tf.loadLayersModel(BASE_MODEL_URL), loadBaseMetrics()]);
+      const [model, metrics] = await Promise.all([loadBaseModel(tf), loadBaseMetrics()]);
       const labels = model.getUserDefinedMetadata?.()?.labels ?? metrics?.vocabulary?.map((v) => v.label);
       this.setModel(tf, model, {
         labels,

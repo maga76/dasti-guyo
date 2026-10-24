@@ -1,8 +1,10 @@
 // Обнаружение рук через MediaPipe HandLandmarker: 21 точка на каждой руке.
 // Сначала пробуем GPU (быстрее), если не получилось — CPU.
+// WASM (~13 МБ) и модель (~7.5 МБ) качаются надёжно: CDN → наш сервер, с повторами (net/download.js).
 
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 import { config } from '../config.js';
+import { download, mediapipeWasmBases } from '../net/download.js';
 
 /**
  * @typedef {{x:number, y:number, z:number}} Point
@@ -26,10 +28,7 @@ export class HandTracker {
    * @param {(percent:number|null) => void} [onProgress] процент загрузки модели
    */
   async init(onProgress) {
-    const [fileset, modelBuffer] = await Promise.all([
-      FilesetResolver.forVisionTasks(config.mediapipe.wasmPath),
-      loadModel(onProgress),
-    ]);
+    const [fileset, modelBuffer] = await Promise.all([loadWasm(), loadModel(onProgress)]);
 
     try {
       this.landmarker = await createLandmarker(fileset, modelBuffer, 'GPU');
@@ -94,48 +93,28 @@ function warmUp(landmarker) {
 }
 
 /**
- * Загружает файл модели с прогрессом. Сначала локальная копия,
- * при её отсутствии — CDN. Модель большая (~7.5 МБ), поэтому прогресс важен.
+ * WASM MediaPipe: имена файлов подбирает сама библиотека (с SIMD или без), а скачиваем
+ * их мы — надёжно — и отдаём библиотеке как blob-адреса.
  */
-async function loadModel(onProgress) {
-  const mp = config.mediapipe;
-  for (const url of [mp.modelPath, mp.modelFallbackUrl]) {
-    try {
-      return await fetchWithProgress(url, onProgress);
-    } catch (err) {
-      console.warn(`[hands] Модель не загрузилась с ${url}:`, err.message);
-    }
-  }
-  throw new Error('hand model unavailable');
+async function loadWasm() {
+  const bases = mediapipeWasmBases();
+  const names = await FilesetResolver.forVisionTasks(bases[0]);
+  const file = (path) => path.split('/').pop();
+  const blobUrl = async (name, type) => {
+    const buffer = await download(bases.map((b) => `${b}/${name}`));
+    return URL.createObjectURL(new Blob([buffer], { type }));
+  };
+  const [wasmLoaderPath, wasmBinaryPath] = await Promise.all([
+    blobUrl(file(names.wasmLoaderPath), 'text/javascript'),
+    blobUrl(file(names.wasmBinaryPath), 'application/wasm'),
+  ]);
+  return { ...names, wasmLoaderPath, wasmBinaryPath };
 }
 
-async function fetchWithProgress(url, onProgress) {
-  const res = await fetch(url);
-  // Dev-сервер на отсутствующий файл отвечает index.html — это не модель
-  const type = res.headers.get('content-type') ?? '';
-  if (!res.ok || type.includes('text/html')) throw new Error(`HTTP ${res.status} ${type}`);
-
-  const total = Number(res.headers.get('content-length')) || 0;
-  if (!res.body || !total) {
-    onProgress?.(null);
-    return new Uint8Array(await res.arrayBuffer());
-  }
-
-  const reader = res.body.getReader();
-  const chunks = [];
-  let received = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.length;
-    onProgress?.(Math.min(100, Math.round((received / total) * 100)));
-  }
-  const buffer = new Uint8Array(received);
-  let offset = 0;
-  for (const chunk of chunks) {
-    buffer.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return buffer;
+/** Модель руки (~7.5 МБ): наш сервер / CDN Google, с прогрессом. */
+async function loadModel(onProgress) {
+  const mp = config.mediapipe;
+  // На CDN jsDelivr модели нет (её нет в git), поэтому первым — CDN Google, где она опубликована
+  const urls = import.meta.env.DEV ? [mp.modelPath, mp.modelFallbackUrl] : [mp.modelFallbackUrl, mp.modelPath];
+  return new Uint8Array(await download(urls, { onProgress, cacheKey: mp.modelFallbackUrl }));
 }

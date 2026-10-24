@@ -10,6 +10,7 @@ import { loadBaseDataset } from '../dataset/baseDataset.js';
 import { textToSigns } from '../avatar/lexicon.js';
 import { Recognition, listen } from '../speech/recognition.js';
 import { labelName } from './trainView.js';
+import { importRetry } from '../net/download.js';
 
 const $ = (id) => document.getElementById(id);
 const PENDING_KEY = 'dasti-guyo:avatarText';
@@ -112,10 +113,11 @@ export class AvatarView {
       const text = $('avLoaderText');
       const progress = (p) => (text.textContent = t('av.loading', { percent: Math.round(p * 100) }));
       progress(0);
+      loader.classList.remove('is-error');
       try {
         const [{ AvatarStage }, { pickRepresentatives }, base, own] = await Promise.all([
-          import('../avatar/avatarStage.js'),
-          import('../avatar/signPlayer.js'),
+          importRetry(() => import('../avatar/avatarStage.js')),
+          importRetry(() => import('../avatar/signPlayer.js')),
           loadBaseDataset(),
           getAllSamples(),
         ]);
@@ -127,7 +129,7 @@ export class AvatarView {
         this.vocabulary = new Map((base?.vocabulary ?? []).map((v) => [v.label, v]));
         this.renderKnown();
 
-        const { drawHandInset } = await import('../avatar/handInset.js');
+        const { drawHandInset } = await importRetry(() => import('../avatar/handInset.js'));
         const stage = new AvatarStage($('avCanvas'));
         await stage.load(progress, this.avatarId);
         // Схема рук рядом с аватаром — каждый кадр, в той же позе
@@ -138,6 +140,7 @@ export class AvatarView {
         console.error('[avatar] Не загрузился:', err);
         text.textContent = t('av.loadError');
         loader.classList.add('is-error');
+        this.loading = null; // следующая попытка (кнопка «Перевести», смена аватара) загрузит заново
       }
     })();
     return this.loading;

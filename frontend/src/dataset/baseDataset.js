@@ -6,7 +6,8 @@
 //   2) показывать, как выполняется жест (анимация точек рук).
 // Хранится компактно: 32 кадра × 132 числа в int16 (× 1000).
 
-const base = import.meta.env.BASE_URL;
+import { assetUrls, download, downloadJson } from '../net/download.js';
+
 let cache = null;
 
 /**
@@ -17,8 +18,8 @@ export function loadBaseDataset() {
   cache ??= (async () => {
     try {
       const [index, bin] = await Promise.all([
-        fetch(`${base}datasets/slovo-base.json`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))),
-        fetch(`${base}datasets/slovo-base.bin`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status))),
+        downloadJson(assetUrls('datasets/slovo-base.json')),
+        download(assetUrls('datasets/slovo-base.bin')),
       ]);
       const values = new Int16Array(bin);
       const { frameSize, framesPerSample, scale } = index;
@@ -46,8 +47,7 @@ export function loadBaseDataset() {
 /** Метрики базовой модели (точность, график обучения) — для экрана «Дар бораи ИИ». */
 export async function loadBaseMetrics() {
   try {
-    const res = await fetch(`${base}models/base/metrics.json`);
-    return res.ok ? await res.json() : null;
+    return await downloadJson(assetUrls('models/base/metrics.json'));
   } catch {
     return null;
   }

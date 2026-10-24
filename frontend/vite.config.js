@@ -1,5 +1,23 @@
 import { defineConfig } from 'vite';
 import basicSsl from '@vitejs/plugin-basic-ssl';
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+// Большие файлы сайт берёт с бесплатного CDN jsDelivr прямо из репозитория GitHub
+// (src/net/download.js). Нужен номер последнего коммита, где менялась папка public/:
+// у файла по такому адресу содержимое никогда не меняется. Нет git — CDN не используется.
+function assetRef() {
+  try {
+    const cwd = fileURLToPath(new URL('.', import.meta.url));
+    return execSync('git log -1 --format=%H -- public', { cwd, encoding: 'utf8' }).trim();
+  } catch {
+    return '';
+  }
+}
+const mediapipeVersion = JSON.parse(
+  readFileSync(new URL('./node_modules/@mediapipe/tasks-vision/package.json', import.meta.url), 'utf8'),
+).version;
 
 // HTTPS=1 (npm run dev:phone) — сайт по HTTPS, чтобы камера работала на телефоне
 // в той же Wi-Fi сети. Сертификат самоподписанный: браузер предупредит, это нормально.
@@ -8,6 +26,10 @@ const backend = process.env.BACKEND_URL || 'http://localhost:8000';
 
 export default defineConfig({
   plugins: https ? [basicSsl()] : [],
+  define: {
+    __ASSET_REF__: JSON.stringify(assetRef()),
+    __MEDIAPIPE_VERSION__: JSON.stringify(mediapipeVersion),
+  },
   server: {
     port: 5173,
     host: true, // доступ с других устройств в сети

@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { AvatarRig } from './rig.js';
 import { SignPlayer } from './signPlayer.js';
+import { assetUrls, download } from '../net/download.js';
 
 // Аватары. male / female — Microsoft Rocketbox (MIT): реалистичные люди с полным скелетом кистей
 // (у каждого пальца три сустава), сконвертированы инструментом tools/rocketbox.html.
@@ -77,8 +78,10 @@ export class AvatarStage {
   /** Загрузить модель (или сменить её). onProgress(0..1). */
   async load(onProgress, avatarId = DEFAULT_AVATAR) {
     const avatar = AVATARS[avatarId] ?? AVATARS[DEFAULT_AVATAR];
-    const url = `${import.meta.env.BASE_URL}avatar/${avatar.file}`;
-    const gltf = await new GLTFLoader().loadAsync(url, (e) => e.total && onProgress?.(e.loaded / e.total));
+    const buffer = await download(assetUrls(`avatar/${avatar.file}`), {
+      onProgress: (p) => p != null && onProgress?.(p / 100),
+    });
+    const gltf = await new GLTFLoader().parseAsync(buffer, '');
     const model = gltf.scene;
     const faces = [];
     model.traverse((o) => {

@@ -1,30 +1,15 @@
 // Service Worker: сайт работает без интернета.
-//   - при установке сохраняет страницу, модели, WASM MediaPipe, базовый набор и озвучку;
+//   - при установке сохраняет только саму страницу и мелкие файлы. Большие файлы (модель руки,
+//     MediaPipe, аватары, набор жестов) сохраняются тогда, когда понадобились впервые
+//     (src/net/download.js) — иначе на медленном интернете они мешали бы загрузке страницы;
 //   - файлы сайта, моделей и голоса — сначала из кэша (они не меняются или имеют хэш в имени);
 //   - страница и словарь с сервера — сначала из сети, без сети — из кэша.
 // При изменении списка файлов увеличьте VERSION — старый кэш удалится.
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = `dasti-guyo-${VERSION}`;
 
-const PRECACHE = [
-  './',
-  'index.html',
-  'favicon.svg',
-  'models/hand_landmarker.task',
-  'mediapipe/wasm/vision_wasm_internal.js',
-  'mediapipe/wasm/vision_wasm_internal.wasm',
-  'models/base/model.json',
-  'models/base/weights.bin',
-  'models/base/metrics.json',
-  'datasets/slovo-base.json',
-  'datasets/slovo-base.bin',
-  'data/phrases.json',
-  'data/quick-phrases.json',
-  'audio/tts/index.json',
-  // Аватар по умолчанию; остальные кэшируются при первом выборе
-  'avatar/male.glb',
-];
+const PRECACHE = ['./', 'index.html', 'favicon.svg', 'data/phrases.json', 'data/quick-phrases.json', 'audio/tts/index.json'];
 
 // Ответы API, которые полезно иметь без сети
 const API_CACHE = ['/api/v1/dictionary', '/api/v1/models/latest'];
@@ -32,15 +17,7 @@ const API_CACHE = ['/api/v1/dictionary', '/api/v1/models/latest'];
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
-      const cache = await caches.open(CACHE);
-      await cache.addAll(PRECACHE);
-      // Все озвученные слова и фразы — по списку из index.json
-      try {
-        const index = await (await fetch('audio/tts/index.json')).json();
-        await cache.addAll(Object.values(index.files).map((f) => `audio/tts/${f}`));
-      } catch {
-        /* без голоса тоже можно работать */
-      }
+      await (await caches.open(CACHE)).addAll(PRECACHE);
       await self.skipWaiting();
     })(),
   );
@@ -50,7 +27,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       for (const key of await caches.keys()) {
-        if (key.startsWith('dasti-guyo-') && key !== CACHE) await caches.delete(key);
+        // dasti-guyo-files-* — большие файлы (net/download.js), они живут между версиями
+        if (key.startsWith('dasti-guyo-v') && key !== CACHE) await caches.delete(key);
       }
       await self.clients.claim();
     })(),
@@ -79,7 +57,8 @@ async function networkFirst(request, fallbackUrl) {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  if (request.method !== 'GET') return;
+  // Куски файлов (Range) качает net/download.js сам и сам же сохраняет готовый файл
+  if (request.method !== 'GET' || request.headers.has('range')) return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
