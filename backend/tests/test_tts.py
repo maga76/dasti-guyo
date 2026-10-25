@@ -67,3 +67,50 @@ def test_endpoint_without_tts_packages(client, monkeypatch):
 
 def test_endpoint_rejects_empty_text(client):
     assert client.get(f"{API}/tts", params={"text": "   "}).status_code == 422
+
+
+def test_tajik_to_uzbek_latin():
+    from app.services.tajik_latin import to_latin
+
+    assert to_latin("Салом") == "Salom"
+    assert to_latin("Қалам") == "Qalam"
+    assert to_latin("Ғалаба") == "Gʻalaba"
+    assert to_latin("Ҷавоб") == "Javob"
+    assert to_latin("Дӯст") == "Doʻst"
+    assert to_latin("Ман об мехоҳам") == "Man ob mexoham"
+    assert to_latin("Ерӣ, ёрӣ!") == "Yeri, yori!"
+
+
+def test_madina_voice_endpoint(client, monkeypatch):
+    from app.services import voice
+
+    calls = []
+
+    def fake_mp3(text):
+        calls.append(text)
+        return b"ID3fake-mp3"
+
+    monkeypatch.setattr(voice, "synthesize", fake_mp3)
+    for _ in range(2):
+        res = client.get(f"{API}/tts", params={"text": "Раҳмат", "voice": "madina"})
+        assert res.status_code == 200
+        assert res.headers["content-type"] == "audio/mpeg"
+        assert res.content == b"ID3fake-mp3"
+    assert calls == ["Раҳмат"]  # второй раз — из кэша
+
+
+def test_madina_falls_back_to_mms(client, monkeypatch):
+    from app.services import voice
+
+    def offline(text):
+        raise tts.TtsUnavailable()
+
+    monkeypatch.setattr(voice, "synthesize", offline)
+    monkeypatch.setattr(tts, "synthesize", lambda text: b"RIFF-wav")
+    res = client.get(f"{API}/tts", params={"text": "Хуб шуд", "voice": "madina"})
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "audio/wav"
+
+
+def test_unknown_voice_rejected(client):
+    assert client.get(f"{API}/tts", params={"text": "Салом", "voice": "robot"}).status_code == 422

@@ -33,7 +33,8 @@ def texts() -> list[str]:
     speech = []
     if speech_file.exists():
         data = json.loads(speech_file.read_text(encoding="utf-8"))
-        speech = [w["text"] for w in data["words"]] + list(data["feedback"].values())
+        # Слова, фразы помощника и подсказки по особым буквам (их помощник тоже говорит вслух)
+        speech = [w["text"] for w in data["words"]] + list(data["feedback"].values()) + [t["tg"] for t in data["tips"].values()]
     return list(dict.fromkeys(words + phrases + rules + speech))  # без повторов, порядок сохраняется
 
 

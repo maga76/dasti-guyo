@@ -1,30 +1,85 @@
-// Озвучка по-таджикски. Источники по порядку:
-//   1) заранее озвученные файлы нейросети MMS-TTS (public/audio/tts) — работают без интернета;
-//   2) сервер /tts — та же нейросеть для новых фраз (если на сервере она установлена);
-//   3) голос браузера: таджикский, если есть (редко), иначе русский — он есть почти везде
-//      и хорошо читает таджикскую кириллицу, если особые буквы заменить близкими (ӣ→и, ҳ→х …).
-//      Так звучат и слова, которые человек сам добавил во вкладке «Омӯзиш»;
+// Озвучка по-таджикски. Два голоса на выбор (кнопка в «Талаффуз», запоминается):
+//   «Мадина» (по умолчанию) — женский нейросетевой голос Microsoft uz-UZ-MadinaNeural; таджикский
+//     текст читается через узбекскую латиницу (узбекское произношение очень близко) — public/audio/madina;
+//   «MMS» — нейросеть Meta MMS-TTS, обученная на таджикском, мужской голос — public/audio/tts.
+// Источники по порядку:
+//   1) заранее озвученные файлы выбранного голоса — работают без интернета;
+//   2) сервер /tts?voice=… — тот же голос для новых фраз (свои слова из «Омӯзиш»);
+//   3) голос браузера: таджикский, если есть (редко); узбекский (в Edge — та же «Мадина») —
+//      через латиницу; иначе русский, особые буквы заменяются близкими (ӣ→и, ҳ→х …);
 //   4) ничего — тогда сайт просто показывает текст.
 
 import { config } from '../config.js';
 
 const base = import.meta.env.BASE_URL;
-let indexPromise = null;
+const VOICE_KEY = 'dasti-guyo:voice';
+export const VOICES = ['madina', 'mms'];
+const VOICE_DIRS = { madina: 'audio/madina', mms: 'audio/tts' };
+const indexPromises = {};
 let current = null; // текущий HTMLAudioElement
+
+/** Выбранный голос: 'madina' | 'mms'. */
+export function getVoice() {
+  try {
+    const v = localStorage.getItem(VOICE_KEY);
+    return VOICES.includes(v) ? v : 'madina';
+  } catch {
+    return 'madina';
+  }
+}
+
+export function setVoice(voice) {
+  try {
+    localStorage.setItem(VOICE_KEY, voice);
+  } catch {
+    /* выбор просто не запомнится */
+  }
+}
 
 /** Такой же вид текста, как на сервере (app/services/tts.py → normalize). */
 export const normalize = (text) => text.trim().toLowerCase().replace(/\s+/g, ' ');
 
-function loadIndex() {
-  indexPromise ??= fetch(`${base}audio/tts/index.json`)
+function loadIndex(voice = getVoice()) {
+  indexPromises[voice] ??= fetch(`${base}${VOICE_DIRS[voice]}/index.json`)
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
-  return indexPromise;
+  return indexPromises[voice];
+}
+
+/** Адрес готового файла для текста в выбранном голосе или null. */
+async function fileUrl(text, voice = getVoice()) {
+  const file = (await loadIndex(voice))?.files?.[normalize(text)];
+  return file ? `${base}${VOICE_DIRS[voice]}/${file}` : null;
 }
 
 // Буквы таджикского алфавита, которых нет в русском, → как их прочитает русский голос
 const TAJIK_TO_RUSSIAN = { ӣ: 'и', Ӣ: 'И', ӯ: 'у', Ӯ: 'У', ҳ: 'х', Ҳ: 'Х', қ: 'к', Қ: 'К', ғ: 'г', Ғ: 'Г', ҷ: 'дж', Ҷ: 'Дж' };
 export const forRussianVoice = (text) => text.replace(/[ӣӢӯӮҳҲқҚғҒҷҶ]/g, (c) => TAJIK_TO_RUSSIAN[c]);
+
+// Таджикская кириллица → узбекская латиница (как на сервере, app/services/tajik_latin.py)
+const LATIN = {
+  а: 'a', б: 'b', в: 'v', г: 'g', ғ: 'gʻ', д: 'd', е: 'e', ё: 'yo', ж: 'j', з: 'z', и: 'i', ӣ: 'i', й: 'y',
+  к: 'k', қ: 'q', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ӯ: 'oʻ', ф: 'f',
+  х: 'x', ҳ: 'h', ч: 'ch', ҷ: 'j', ш: 'sh', ъ: 'ʼ', ь: '', э: 'e', ю: 'yu', я: 'ya',
+};
+const VOWELS = new Set('аеёиӣоуӯэюя');
+export function toLatin(text) {
+  let prev = '';
+  let out = '';
+  for (const ch of text) {
+    const low = ch.toLowerCase();
+    let lat = LATIN[low];
+    if (lat === undefined) {
+      out += ch;
+    } else {
+      // «е» в начале слова и после гласной звучит как «йе»
+      if (low === 'е' && (!prev || !/\p{L}/u.test(prev) || VOWELS.has(prev.toLowerCase()))) lat = 'ye';
+      out += ch !== low && lat ? lat[0].toUpperCase() + lat.slice(1) : lat;
+    }
+    prev = ch;
+  }
+  return out;
+}
 
 /** Голоса браузера появляются не сразу — ждём их до секунды. */
 async function voices() {
@@ -41,16 +96,20 @@ async function voices() {
   return list;
 }
 
-/** Голос браузера: таджикский, если есть, иначе русский. {voice, tajik} или null. */
+/** Голос браузера и как ему подать текст: {voice, prepare} или null. */
 async function browserVoice() {
   const list = await voices();
   const lang = (v) => v.lang.toLowerCase();
   const tg = list.find((v) => lang(v).startsWith('tg'));
-  if (tg) return { voice: tg, tajik: true };
-  // Локальный русский голос лучше: работает без интернета и без задержки
+  if (tg) return { voice: tg, prepare: (text) => text };
+  // Узбекский женский (в Edge — «Мадина») читает таджикский через латиницу почти как носитель
+  const uz = list.filter((v) => lang(v).startsWith('uz'));
+  const uzVoice = uz.find((v) => /madina/i.test(v.name)) ?? uz[0];
+  if (uzVoice) return { voice: uzVoice, prepare: toLatin };
+  // Русский: локальный лучше — работает без интернета и без задержки
   const ru = list.filter((v) => lang(v).startsWith('ru'));
   const voice = ru.find((v) => v.localService) ?? ru[0];
-  return voice ? { voice, tajik: false } : null;
+  return voice ? { voice, prepare: forRussianVoice } : null;
 }
 
 export function stop() {
@@ -80,7 +139,7 @@ let serverSkipUntil = 0;
 async function fromServer(text) {
   if (Date.now() < serverSkipUntil) return null;
   try {
-    const res = await fetch(`${config.apiUrl}/tts?text=${encodeURIComponent(text)}`, {
+    const res = await fetch(`${config.apiUrl}/tts?voice=${getVoice()}&text=${encodeURIComponent(text)}`, {
       // Обычно ~0.5 с; дольше не ждём — слово должно прозвучать сразу
       signal: AbortSignal.timeout(8_000),
     });
@@ -100,11 +159,9 @@ async function fromServer(text) {
  */
 export async function speak(text, { rate = 1 } = {}) {
   if (!text?.trim()) return null;
-  const key = normalize(text);
 
-  const index = await loadIndex();
-  const file = index?.files?.[key];
-  if (file && (await playUrl(`${base}audio/tts/${file}`, rate))) return 'file';
+  const file = await fileUrl(text);
+  if (file && (await playUrl(file, rate))) return 'file';
 
   const url = await fromServer(text);
   if (url && (await playUrl(url, rate))) return 'server';
@@ -112,7 +169,7 @@ export async function speak(text, { rate = 1 } = {}) {
   const found = await browserVoice();
   if (found) {
     stop();
-    const utterance = new SpeechSynthesisUtterance(found.tajik ? text : forRussianVoice(text));
+    const utterance = new SpeechSynthesisUtterance(found.prepare(text));
     utterance.voice = found.voice;
     utterance.lang = found.voice.lang;
     utterance.rate = 0.9 * rate; // чуть медленнее — понятнее
@@ -131,15 +188,18 @@ let currentUtterance = null;
  */
 export async function speakAndWait(text, opts) {
   const source = await speak(text, opts);
+  // Подстраховка: если браузер так и не сообщит о конце речи, разговор не должен зависнуть
+  const limit = new Promise((r) => setTimeout(r, 2000 + (text?.length ?? 0) * 150));
   if (source === 'browser') {
     const u = currentUtterance;
-    await new Promise((resolve) => {
+    const end = new Promise((resolve) => {
       if (!u || !window.speechSynthesis.speaking) return resolve();
       u.addEventListener('end', resolve, { once: true });
       u.addEventListener('error', resolve, { once: true });
     });
+    await Promise.race([end, limit]);
   } else if (source) {
-    await waitEnd();
+    await Promise.race([waitEnd(), limit]);
   }
   return source;
 }
@@ -165,16 +225,14 @@ function waitEnd() {
  * таджикским голосом (работает и без интернета); иначе — как speak (сервер или голос браузера).
  */
 export async function speakSentence(text, words) {
-  const index = await loadIndex();
   // Вся фраза есть готовым файлом — лучше всего
-  if (index?.files?.[normalize(text)]) return speak(text);
-  // Все слова озвучены таджикским голосом — читаем ими, а не запасным русским голосом
-  const allWords = words?.length && words.every((w) => index?.files?.[normalize(w)]);
-  if (!allWords) return speak(text);
+  if (await fileUrl(text)) return speak(text);
+  // Все слова озвучены — читаем ими, а не запасным голосом браузера
+  const files = await Promise.all((words ?? []).map((w) => fileUrl(w)));
+  if (!files.length || files.some((f) => !f)) return speak(text);
   let any = null;
-  for (const word of words) {
-    const file = index?.files?.[normalize(word)];
-    if (file && (await playUrl(`${base}audio/tts/${file}`))) {
+  for (const file of files) {
+    if (await playUrl(file)) {
       any = 'file';
       await waitEnd();
     }

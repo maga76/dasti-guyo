@@ -5,11 +5,14 @@
 // подсвечивает буквы и слоги с ошибкой, даёт подсказку по особой букве (ҳ қ ғ ҷ ӯ ӣ),
 // повторяет слово медленно, а после второй ошибки — по слогам.
 // Прогресс по словам хранится в браузере; если человек вошёл, каждая попытка уходит в профиль.
-// Слова и подсказки — public/data/speech-words.json; голос — public/audio/tts.
+// Слова и подсказки — public/data/speech-words.json; голос — public/audio/madina (или audio/tts).
+//
+// Режим разговора («Сӯҳбат»): одно нажатие — и помощник сам ведёт занятие, пока не нажмут «Бас»:
+// говорит слово → слушает → хвалит или подсказывает (вслух) → после 3 неудач или успеха — следующее слово.
 
 import { getLang, onLangChange, t } from '../i18n/i18n.js';
 import { Recognition, listen } from '../speech/recognition.js';
-import { currentDuration, speakAndWait, stop as stopVoice } from '../speech/speech.js';
+import { VOICES, currentDuration, getVoice, setVoice, speakAndWait, stop as stopVoice } from '../speech/speech.js';
 import { bestMatch, specialMistakes, wrongSyllables } from '../speech/pronunciation.js';
 import { getUser } from '../api/api.js';
 import { flushSpeech, saveSpeech } from '../api/speechSync.js';
@@ -21,6 +24,9 @@ const LEVEL_KEY = 'dasti-guyo:speechLevel';
 const MASTERED_OK = 2; // как на сервере: 2 удачные попытки и последняя удачная
 const MAX_CHAT = 8;
 const SLOW = 0.7;
+const DIALOG_TRIES = 3; // в разговоре: столько попыток на слово, потом — следующее
+const DIALOG_SILENCE = 2; // столько раз подряд ничего не услышал — разговор на паузе
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const key = (word) => word.trim().toLowerCase();
 
@@ -64,6 +70,7 @@ export class SpeechView {
   async setActive(active) {
     this.active = active;
     if (!active) {
+      this.dialog = false;
       this.session?.stop();
       stopVoice();
       return;
@@ -141,6 +148,122 @@ export class SpeechView {
     if (act === 'listen') return this.play(1);
     if (act === 'slow') return this.play(SLOW, true);
     if (act === 'mic') return this.session ? this.session.stop() : this.listenWord();
+    if (act === 'dialog') return this.dialog ? this.stopDialog() : this.startDialog();
+    if (act === 'voice') {
+      setVoice(btn.dataset.voice);
+      this.paint();
+      return this.play(1);
+    }
+  }
+
+  // ---------- Режим разговора ----------
+
+  async startDialog() {
+    if (!Recognition) {
+      this.say('ai', t('sp.noMic'));
+      this.paint();
+      return;
+    }
+    this.dialog = true;
+    this.say('ai', t('sp.dialogStart'));
+    this.paint();
+    await speakAndWait(this.feedback('start'));
+    let silence = 0;
+    let tries = 0;
+    let word = null;
+    while (this.dialog && this.active) {
+      if (this.word !== word) {
+        word = this.word;
+        tries = 0;
+        this.resetWord();
+      }
+      await this.play(1);
+      if (!this.dialog) break;
+      const { variants, error } = await this.hear();
+      if (!this.dialog) break;
+      if (error) {
+        // Нет сети, нет доступа к микрофону — продолжать бессмысленно
+        this.say('ai', t(error));
+        this.stopDialog();
+        break;
+      }
+      if (!variants.some((v) => v.trim())) {
+        silence++;
+        this.say('ai', t('sp.nothing'));
+        this.paint();
+        await speakAndWait(this.feedback('nothing'));
+        if (silence >= DIALOG_SILENCE) {
+          this.say('ai', t('sp.dialogPaused'));
+          this.stopDialog();
+        }
+        continue;
+      }
+      silence = 0;
+      tries++;
+      const ok = await this.check(word, variants, { dialog: true });
+      if (!this.dialog) break;
+      if (ok || tries >= DIALOG_TRIES) {
+        if (!ok) {
+          this.say('ai', t('sp.moveOn'));
+          this.paint();
+          await speakAndWait(this.feedback('moveOn'));
+        }
+        if (!this.nextWord()) {
+          this.say('ai', t('sp.levelDone'), { kind: 'ok' });
+          this.paint();
+          await speakAndWait(this.feedback('done'));
+          this.stopDialog();
+        }
+        await pause(300);
+      }
+    }
+  }
+
+  stopDialog() {
+    if (!this.dialog) return;
+    this.dialog = false;
+    this.session?.stop();
+    this.say('ai', t('sp.dialogStop'));
+    this.paint();
+  }
+
+  /** Перейти к следующему неосвоенному слову уровня. false — все освоены. */
+  nextWord() {
+    const next = this.words.findIndex((w, i) => i > this.index && !this.mastered(w));
+    const any = this.words.findIndex((w) => !this.mastered(w));
+    const target = next >= 0 ? next : any;
+    if (target < 0) return false;
+    this.index = target === this.index && this.words.length > 1 ? (this.index + 1) % this.words.length : target;
+    this.resetWord();
+    this.paint();
+    return true;
+  }
+
+  /** Послушать человека один раз: {variants: string[], error: i18n-ключ|null}. */
+  hear() {
+    return new Promise((resolve) => {
+      let variants = [];
+      let error = null;
+      stopVoice();
+      this.session = listen({
+        lang: 'ru-RU',
+        alternatives: 5,
+        onText: (text, final, alts) => {
+          variants = [text, ...alts];
+          if (final) this.session?.stop();
+        },
+        onError: (errorKey, code) => {
+          if (code !== 'no-speech' && code !== 'aborted') error = errorKey;
+        },
+        onEnd: () => {
+          this.session = null;
+          this.paint();
+          resolve({ variants, error });
+        },
+      });
+      if (!this.session) resolve({ variants: [], error: 'sp.noMic' });
+      this.paint();
+    });
   }
 
   setLevel(level) {
@@ -201,7 +324,6 @@ export class SpeechView {
     stopVoice();
     const word = this.word;
     let heard = [];
-    let finished = false;
     let failed = false; // уже сказали причину (нет сети, нет доступа к микрофону) — «не услышал» не добавляем
     this.result = null;
     this.session = listen({
@@ -210,10 +332,7 @@ export class SpeechView {
       alternatives: 5,
       onText: (text, final, alts) => {
         heard = [text, ...alts];
-        if (final) {
-          finished = true;
-          this.session?.stop();
-        }
+        if (final) this.session?.stop();
       },
       onError: (errorKey, code) => {
         if (code !== 'no-speech' && code !== 'aborted') {
@@ -223,18 +342,23 @@ export class SpeechView {
       },
       onEnd: () => {
         this.session = null;
-        if (word === this.word && !failed) this.check(word, heard, finished);
+        if (word === this.word && !failed && !this.dialog) this.check(word, heard);
         else this.paint();
       },
     });
     this.paint();
   }
 
-  async check(word, heard, finished) {
+  /**
+   * Оценить попытку, сказать результат и помочь при ошибке.
+   * @param {{dialog?: boolean}} [opts] dialog — режим разговора: следующее слово выбирает он сам
+   * @returns {Promise<boolean>} получилось ли
+   */
+  async check(word, heard, { dialog = false } = {}) {
     if (!heard.some((h) => h.trim())) {
       this.say('ai', t('sp.nothing'));
       this.paint();
-      return;
+      return false;
     }
     const pass = this.data.pass ?? 0.75;
     const r = bestMatch(word.text, heard);
@@ -252,33 +376,34 @@ export class SpeechView {
       if (!wasMastered && this.mastered(word)) this.say('ai', t('sp.mastered', { word: word.text }), { kind: 'ok' });
       this.paint();
       await speakAndWait(this.feedback(percent >= 90 ? 'great' : 'good'));
-      // Дальше — следующее неосвоенное слово уровня
-      if (word === this.word) {
-        const next = this.words.findIndex((w, i) => i > this.index && !this.mastered(w));
-        const any = this.words.findIndex((w) => !this.mastered(w));
-        if (next >= 0 || any >= 0) setTimeout(() => word === this.word && this.goTo(next >= 0 ? next : any), 900);
-        else {
+      // Дальше — следующее неосвоенное слово уровня (в разговоре это решает сам разговор)
+      if (!dialog && word === this.word) {
+        await pause(700);
+        if (word === this.word && !this.nextWord()) {
           this.say('ai', t('sp.levelDone'), { kind: 'ok' });
-          await speakAndWait(this.feedback('done'));
           this.paint();
+          await speakAndWait(this.feedback('done'));
         }
       }
-      return;
+      return true;
     }
 
-    // Не получилось: что именно, подсказки, и слово ещё раз — медленно, потом по слогам
+    // Не получилось: что именно, подсказки (в разговоре — вслух), и слово ещё раз — медленно,
+    // после второй ошибки — по слогам
     this.fails += 1;
     this.say('ai', t('sp.again', { score: percent }), { kind: 'bad' });
-    for (const letter of specialMistakes(word.text, r.wrong)) {
-      const tip = this.data.tips?.[letter];
-      if (tip) this.say('ai', tip[getLang() === 'ru' ? 'ru' : 'tg'], { kind: 'tip' });
-    }
-    if (this.fails >= 2 && word.syllables.length > 1) {
-      this.say('ai', t('sp.bySyllables', { syllables: word.syllables.join(' — ') }), { kind: 'tip' });
-    }
+    const tips = specialMistakes(word.text, r.wrong)
+      .map((letter) => this.data.tips?.[letter])
+      .filter(Boolean);
+    for (const tip of tips) this.say('ai', tip[getLang() === 'ru' ? 'ru' : 'tg'], { kind: 'tip' });
+    const bySyllables = this.fails >= 2 && word.syllables.length > 1;
+    if (bySyllables) this.say('ai', t('sp.bySyllables', { syllables: word.syllables.join(' — ') }), { kind: 'tip' });
     this.paint();
     await speakAndWait(this.feedback('again'));
-    if (word === this.word) await this.play(SLOW, this.fails >= 2);
+    if (dialog) for (const tip of tips) if (this.dialog) await speakAndWait(tip.tg);
+    if (dialog && bySyllables && this.dialog) await speakAndWait(this.feedback('syllables'));
+    if (word === this.word && (!dialog || this.dialog)) await this.play(SLOW, bySyllables);
+    return false;
   }
 
   // ---------- Отрисовка ----------
@@ -306,6 +431,12 @@ export class SpeechView {
           <h1>${esc(t('sp.title'))}</h1>
           <p class="muted">${esc(t('sp.intro'))}</p>
         </div>
+        <div class="sp-voice" role="group" aria-label="${esc(t('sp.voice'))}">
+          <span class="muted">${esc(t('sp.voice'))}:</span>
+          ${VOICES.map(
+            (v) => `<button type="button" data-act="voice" data-voice="${v}" aria-pressed="${getVoice() === v}" ${this.dialog || this.busy ? 'disabled' : ''}>${esc(t(`sp.voice.${v}`))}</button>`,
+          ).join('')}
+        </div>
         <nav class="sp-levels" aria-label="${esc(t('sp.levels'))}">
           ${this.data.levels
             .map((l) => {
@@ -330,14 +461,23 @@ export class SpeechView {
           <p class="sp-ru">${esc(word.ru)}</p>
           <div class="sp-syllables" lang="tg">${syllables}</div>
 
+          <button type="button" class="btn btn-lg sp-dialog${this.dialog ? ' is-on' : ''}" data-act="dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true">${
+              this.dialog
+                ? '<rect x="6" y="6" width="12" height="12" rx="2"/>'
+                : '<path d="M4 5h16v10H9l-5 4V5z"/><path d="M8 9h8M8 12h5"/>'
+            }</svg>
+            ${esc(t(this.dialog ? 'sp.dialogStopBtn' : 'sp.dialogBtn'))}</button>
+          ${this.dialog ? `<p class="sp-dialog-state" aria-live="polite">${esc(t(listening ? 'sp.listening' : 'sp.dialogSpeaking'))}</p>` : ''}
+
           <div class="sp-actions">
-            <button type="button" class="btn btn-secondary" data-act="listen" ${this.busy || listening ? 'disabled' : ''}>
+            <button type="button" class="btn btn-secondary" data-act="listen" ${this.busy || listening || this.dialog ? 'disabled' : ''}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12"/></svg>
               ${esc(t('sp.listen'))}</button>
-            <button type="button" class="btn btn-secondary" data-act="slow" ${this.busy || listening ? 'disabled' : ''}>
+            <button type="button" class="btn btn-secondary" data-act="slow" ${this.busy || listening || this.dialog ? 'disabled' : ''}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 13l3-3M12 3v2"/></svg>
               ${esc(t('sp.slow'))}</button>
-            <button type="button" class="btn btn-primary sp-mic${listening ? ' is-listening' : ''}" data-act="mic" ${this.busy ? 'disabled' : ''}>
+            <button type="button" class="btn btn-primary sp-mic${listening ? ' is-listening' : ''}" data-act="mic" ${this.busy || this.dialog ? 'disabled' : ''}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
               ${esc(t(listening ? 'sp.listening' : 'sp.speak'))}</button>
           </div>
