@@ -65,7 +65,7 @@
       "name": "dense_3",
       "trainable": true,
       "dtype": "float32",
-      "units": 25,
+      "units": 26,
       "activation": "softmax",
       "use_bias": true,
       "kernel_initializer": {
@@ -128,14 +128,14 @@
      "name": "dense_3/kernel",
      "shape": [
       128,
-      25
+      26
      ],
      "dtype": "float32"
     },
     {
      "name": "dense_3/bias",
      "shape": [
-      25
+      26
      ],
      "dtype": "float32"
     }
@@ -168,7 +168,8 @@
    "Фаҳмидан",
    "Имрӯз",
    "Фардо",
-   "Хӯрок"
+   "Хӯрок",
+   "__none__"
   ],
   "featureVersion": 2,
   "seqLen": 16,

@@ -19,9 +19,14 @@ import { preloadSpeech, speak, speakSentence } from '../speech/speech.js';
 const $ = (id) => document.getElementById(id);
 
 const AUTO_SPEAK_KEY = 'dasti-guyo:autoSpeak';
-const THRESHOLD_KEY = 'dasti-guyo:threshold';
-const HISTORY = 3;
-const MIN_AGREE = 2;
+// v2: у модели с классом «не наш жест» лучший порог — 0.6 (см. backend/tools/build_slovo_base.py,
+// ACCEPT); новый ключ, чтобы прежний сохранённый 0.8 не мешал
+const THRESHOLD_KEY = 'dasti-guyo:threshold-v2';
+const DEFAULT_THRESHOLD = '0.6';
+// Слово засчитывается, только если модель уверенно назвала его в 3 из 4 последних ответов
+// (~0.6 с): случайный ошибочный ответ в одном окне не превращается в слово
+const HISTORY = 4;
+const MIN_AGREE = 3;
 const MIN_GAP_MS = 800;
 
 function readSetting(key, fallback) {
@@ -63,7 +68,7 @@ export class TranslateView {
     this.idleSinceAdded = true;
     this.currentWord = null;
 
-    this.threshold = Number(readSetting(THRESHOLD_KEY, '0.8'));
+    this.threshold = Number(readSetting(THRESHOLD_KEY, DEFAULT_THRESHOLD));
     preloadSpeech();
     this.bindEvents();
     onLangChange(() => this.update());

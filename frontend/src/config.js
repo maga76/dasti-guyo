@@ -15,9 +15,17 @@ export const config = {
     modelFallbackUrl:
       'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
     numHands: 2,
+    // Порог обнаружения выше 0.5 теряет настоящие руки (проверено на кадрах аватара: при 0.6–0.7
+    // пропадали руки в «Хуб», «Чӣ», «Падар»). Поэтому ложные «руки» (лицо, волосы) отсеиваются
+    // иначе — см. minHandScore, stableFrames и looksLikeHand в handTracker.js
     minDetectionConfidence: 0.5,
-    minPresenceConfidence: 0.5,
+    minPresenceConfidence: 0.6,
     minTrackingConfidence: 0.5,
+    // Насколько уверенно MediaPipe определил левая/правая: у настоящих рук ≥ 0.69,
+    // у ложных срабатываний обычно ниже
+    minHandScore: 0.6,
+    // Рука засчитывается, если держится столько кадров подряд: ложная «рука» на лице обычно мелькает
+    stableFrames: 3,
     // MediaPipe считает, что кадр уже отзеркален (как селфи). Мы подаём
     // в модель исходный кадр, поэтому «Left»/«Right» надо поменять местами.
     swapHandedness: true,

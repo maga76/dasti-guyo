@@ -43,6 +43,25 @@ NONE_LABEL = "__none__"
 NONE_SOURCE = "no_event"
 NONE_SAMPLES = 160  # из 400 записей «нет жеста» хватит части
 
+# Класс «не наш жест». Без него модель знает только 25 слов и любое движение рук (почесаться,
+# поправить волосы, жест не из словаря) обязана назвать одним из них — отсюда ложные слова.
+# Учим её на записях ДРУГИХ слов Slovo: это настоящие движения настоящих людей.
+#   OTHER_TRAIN_WORDS — слова, которые модель видит как «не наш жест»;
+#   OTHER_HELDOUT_WORDS — слова, которых модель не видела вовсе: на них честно меряем,
+#   как часто она выдумывает жест (в итоговую модель они тоже входят).
+OTHER_TRAIN_WORDS = 240
+OTHER_HELDOUT_WORDS = 60
+OTHER_PER_WORD = {"train": 3, "test": 1}  # записей на слово у людей из train / test
+OTHER_HELDOUT_PER_WORD = 2  # у людей из test
+# Сколько записей «не наш жест» на эпоху. Подобрано (tune): 60 — лучший баланс; при 120–400 модель
+# чаще молчит на настоящих словах, а выдумывает слова почти так же редко
+NONE_PER_EPOCH = 60
+# Порог уверенности переводчика по умолчанию (как на сайте, translateView.js). С классом
+# «не наш жест» 0.6 лучше прежних 0.8: на новых людях верно 61%, не то слово 10%,
+# выдуманных слов на чужих жестах 12% (у прежней модели при 0.8 — 66% / 14% / 57%)
+ACCEPT = 0.6
+BROWSER_OTHER = 150  # сколько записей «не наш жест» положить в набор для браузера
+
 # Слово в Slovo → (таджикский, русский, пометка)
 # Пометка "national": по словам Национального объединения глухих Таджикистана,
 # у этого слова в таджикском жестовом языке свой, национальный жест.
@@ -89,7 +108,33 @@ def load_annotations():
         raise SystemExit(f"В Slovo нет слов: {missing}")
     # Детерминированная выборка «нет жеста» с сохранением деления train/test
     none_rows = sorted((r for r in rows if r["text"] == NONE_SOURCE), key=lambda r: r["attachment_id"])
-    return wanted + none_rows[:NONE_SAMPLES]
+    for r in wanted:
+        r["role"] = "word"
+    return wanted + none_rows[:NONE_SAMPLES] + other_rows(rows)
+
+
+def other_rows(rows):
+    """Записи других слов Slovo для класса «не наш жест» (выбор детерминированный)."""
+    by_text = defaultdict(list)
+    for r in rows:
+        if r["text"] not in WORDS and r["text"] != NONE_SOURCE:
+            by_text[r["text"]].append(r)
+    texts = sorted(by_text)
+    order = np.random.default_rng(7).permutation(len(texts))
+    picked = []
+    for n, i in enumerate(order[: OTHER_TRAIN_WORDS + OTHER_HELDOUT_WORDS]):
+        group = sorted(by_text[texts[i]], key=lambda r: r["attachment_id"])
+        train = [r for r in group if r["train"] == "True"]
+        test = [r for r in group if r["train"] != "True"]
+        if n < OTHER_TRAIN_WORDS:
+            chosen = train[: OTHER_PER_WORD["train"]] + test[: OTHER_PER_WORD["test"]]
+            role = "other"
+        else:
+            chosen = test[:OTHER_HELDOUT_PER_WORD]
+            role = "heldout"
+        for r in chosen:
+            picked.append({**r, "role": role})
+    return picked
 
 
 def iter_landmarks(path: Path, wanted: set[str]):
@@ -139,7 +184,7 @@ def to_frames(video: list[dict], aspect: float) -> np.ndarray:
 def build_samples(rows):
     """Записи выбранных слов. Результат кэшируется: разбор 1.2 ГБ занимает минуты."""
     cache = DATA / "samples_cache.pkl"
-    key = (tuple(sorted(WORDS)), NONE_SAMPLES)
+    key = (tuple(sorted(WORDS)), NONE_SAMPLES, OTHER_TRAIN_WORDS, OTHER_HELDOUT_WORDS, tuple(OTHER_PER_WORD.values()), OTHER_HELDOUT_PER_WORD)
     if cache.exists():
         with open(cache, "rb") as f:
             cached = pickle.load(f)
@@ -166,6 +211,7 @@ def build_samples(rows):
 def _parse_samples(rows):
     by_id = {r["attachment_id"]: r for r in rows}
     users = sorted({r["user_id"] for r in rows})
+    # «нет жеста» и «не наш жест» — один класс: всё, что не слово словаря
     labels = list(WORDS) + [NONE_SOURCE]
     samples = []
     print(f"Читаю точки рук для {len(by_id)} записей (это несколько минут)…")
@@ -180,9 +226,13 @@ def _parse_samples(rows):
         samples.append(
             {
                 "frames": frames,
-                "label": labels.index(row["text"]),
+                "label": labels.index(row["text"]) if row["text"] in WORDS else labels.index(NONE_SOURCE),
                 "train": row["train"] == "True",
                 "user": users.index(row["user_id"]),
+                # word — слово словаря; other — «не наш жест» для обучения;
+                # heldout — слово, которого модель не видит при проверке (только для замера)
+                "role": row.get("role", "other"),
+                "text": row["text"],
             }
         )
         if len(samples) % 100 == 0:
@@ -206,16 +256,29 @@ def new_model():
     return MLPClassifier(hidden_layer_sizes=(256, 128), alpha=1e-3, batch_size=64, learning_rate_init=1e-3, random_state=0)
 
 
+def epoch_xy(words, others, rng):
+    """Записи одной эпохи: все слова (с копиями) + часть «не наш жест» (каждая в одном варианте)."""
+    x, y = make_xy(words, rng, augmented=True)
+    if not others:
+        return x, y
+    pick = rng.choice(len(others), size=min(NONE_PER_EPOCH, len(others)), replace=False)
+    xo = [sequence_features(augment(others[i]["frames"], rng) if rng.random() < 0.5 else others[i]["frames"]) for i in pick]
+    yo = [others[i]["label"] for i in pick]
+    return np.concatenate([x, np.asarray(xo, dtype=np.float32)]), np.concatenate([y, np.asarray(yo)])
+
+
 def train(samples, n_classes, rng, test=None):
     """Обучение по эпохам; на каждой эпохе — новые случайные копии записей.
-    Возвращает модель и кривую точности (для графика на сайте)."""
+    Возвращает модель и кривую точности на словах (для графика на сайте)."""
     clf = new_model()
     classes = np.arange(n_classes)
     curve = []
+    words = [s for s in samples if s["role"] == "word"]
+    others = [s for s in samples if s["role"] != "word"]
     x_test, y_test = make_xy(test, rng, augmented=False) if test else (None, None)
-    x_plain, y_plain = make_xy(samples, rng, augmented=False)
+    x_plain, y_plain = make_xy(words, rng, augmented=False)
     for epoch in range(1, EPOCHS + 1):
-        x, y = make_xy(samples, rng, augmented=True)
+        x, y = epoch_xy(words, others, rng)
         order = rng.permutation(len(x))
         clf.partial_fit(x[order], y[order], classes=classes)
         # Скорость обучения плавно снижается 1e-3 → 5e-5 (косинусом): к концу модель
@@ -231,22 +294,75 @@ def train(samples, n_classes, rng, test=None):
     return clf, curve
 
 
+def rejection_stats(clf, samples, none_index, rng):
+    """Как модель ведёт себя на записях, где НЕТ нашего слова.
+    false_accept — доля, где модель уверенно (≥ ACCEPT) назвала одно из слов: это и есть
+    «выдуманные» слова в переводчике."""
+    x, _ = make_xy(samples, rng, augmented=False)
+    proba = clf.predict_proba(x)
+    top = proba.argmax(1)
+    conf = proba.max(1)
+    word = top != none_index if none_index is not None else np.ones(len(top), bool)
+    return {"n": len(samples), "falseAccept": round(float((word & (conf >= ACCEPT)).mean()), 4)}
+
+
+def word_stats(clf, samples, rng, none_index=None):
+    """На записях слов, как в переводчике (порог ACCEPT):
+    acceptedCorrect — уверенно и правильно; acceptedWrong — уверенно назвала ДРУГОЕ слово (худшее);
+    missed — промолчала (низкая уверенность или «не жест»): человек просто повторит жест."""
+    x, y = make_xy(samples, rng, augmented=False)
+    proba = clf.predict_proba(x)
+    top = proba.argmax(1)
+    sure = proba.max(1) >= ACCEPT
+    is_word = top != none_index if none_index is not None else np.ones(len(top), bool)
+    correct = (top == y) & sure
+    wrong = (top != y) & sure & is_word
+    return {
+        "accuracy": round(float((top == y).mean()), 4),
+        "acceptedCorrect": round(float(correct.mean()), 4),
+        "acceptedWrong": round(float(wrong.mean()), 4),
+        "missed": round(float(1 - correct.mean() - wrong.mean()), 4),
+    }
+
+
 def main():
     rng = np.random.default_rng(42)
     rows = load_annotations()
     samples, source_labels = build_samples(rows)
     n_classes = len(source_labels)
-    train_set = [s for s in samples if s["train"]]
-    test_set = [s for s in samples if not s["train"]]
-    print(f"Записей: {len(samples)} (обучение {len(train_set)}, проверка {len(test_set)}), классов: {n_classes}")
+    none_index = source_labels.index(NONE_SOURCE)
+    words_train = [s for s in samples if s["role"] == "word" and s["train"]]
+    words_test = [s for s in samples if s["role"] == "word" and not s["train"]]
+    other_train = [s for s in samples if s["role"] == "other" and s["train"]]
+    other_test = [s for s in samples if s["role"] == "other" and not s["train"]]
+    heldout = [s for s in samples if s["role"] == "heldout"]
+    test_set = words_test
+    print(
+        f"Записей: {len(samples)}: слова {len(words_train)}+{len(words_test)}, «не наш жест» "
+        f"{len(other_train)}+{len(other_test)}, незнакомые слова для замера {len(heldout)}; классов: {n_classes}"
+    )
+
+    # 0) Для сравнения — модель как раньше: только 25 слов, без «не наш жест»
+    print("Прежний способ (без «не наш жест»)…")
+    old_probe, _ = train(words_train, n_classes, rng)
+    old = {"words": word_stats(old_probe, words_test, rng), "heldout": rejection_stats(old_probe, heldout, None, rng)}
+    print(f"  прежний: {old}")
 
     # 1) Честная проверка: учимся на одних людях, проверяем на других
-    print("Проверочное обучение (люди из test не участвуют)…")
-    probe, curve = train(train_set, n_classes, rng, test=test_set)
+    print("Проверочное обучение (люди из test и незнакомые слова не участвуют)…")
+    probe, curve = train(words_train + other_train, n_classes, rng, test=test_set)
     x_test, y_test = make_xy(test_set, rng, augmented=False)
     pred = probe.predict(x_test)
     accuracy = float((pred == y_test).mean())
+    rejection = {
+        "accept": ACCEPT,
+        "words": word_stats(probe, words_test, rng, none_index),
+        "otherNewPeople": rejection_stats(probe, other_test, none_index, rng),
+        "heldout": rejection_stats(probe, heldout, none_index, rng),
+        "before": old,
+    }
     print(f"Точность на новых людях: {accuracy:.1%}")
+    print(f"  новый: {rejection}")
 
     tj_labels = [WORDS[l][0] if l in WORDS else NONE_LABEL for l in source_labels]
     per_class = []
@@ -283,21 +399,33 @@ def main():
         "source": "Slovo (SberDevices), русский жестовый язык, CC BY-SA 4.0",
         "classes": n_classes,
         "samples": len(samples),
-        "signersTrain": len({s["user"] for s in train_set}),
+        "signersTrain": len({s["user"] for s in words_train}),
         "signersTest": len({s["user"] for s in test_set}),
         "testAccuracy": round(accuracy, 4),
         "perClass": per_class,
         "testCounts": {tj_labels[c]: int((y_test == c).sum()) for c in range(n_classes)},
         "confused": confused,
+        # Как часто модель «выдумывает» слово на движениях, которых нет в словаре (см. rejection_stats)
+        "rejection": rejection,
         "curve": curve,
         "vocabulary": vocabulary,
     }
     (MODEL_OUT / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=1), encoding="utf-8")
 
-    # 3) Компактные записи для браузера: 32 кадра × 132 числа в int16
+    # 3) Компактные записи для браузера: 32 кадра × 132 числа в int16.
+    # «Не наш жест» — по одной записи на слово (не больше BROWSER_OTHER): браузеру этого хватит,
+    # чтобы при переобучении не разучиться говорить «это не жест», а файл остаётся небольшим.
     DATASET_OUT.mkdir(parents=True, exist_ok=True)
     blobs, index = [], []
+    seen_other = set()
+    browser = []
     for s in samples:
+        if s["role"] == "word":
+            browser.append(s)
+        elif s["role"] == "other" and s["train"] and s["text"] not in seen_other and len(seen_other) < BROWSER_OTHER:
+            seen_other.add(s["text"])
+            browser.append(s)
+    for s in browser:
         stored = resample(s["frames"], STORED_FRAMES)
         blobs.append(np.clip(np.round(stored * SCALE), -32767, 32767).astype("<i2").tobytes())
         index.append([s["label"], int(s["train"])])

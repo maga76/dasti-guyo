@@ -35,9 +35,10 @@ export default defineConfig({
     host: true, // доступ с других устройств в сети
     // Запросы к API и файлам моделей идут на бэкенд через этот же адрес:
     // не нужен CORS и нет «смешанного содержимого» на HTTPS
+    // '/media/' со слэшем: иначе сюда попадал бы и '/mediapipe/…' (WASM распознавания рук)
     proxy: {
       '/api': backend,
-      '/media': backend,
+      '/media/': backend,
     },
   },
   preview: {
@@ -45,7 +46,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': backend,
-      '/media': backend,
+      '/media/': backend,
     },
   },
   build: {

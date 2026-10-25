@@ -10,6 +10,7 @@ import { syncSamples } from '../api/sync.js';
 import { flushPractice } from '../api/practiceSync.js';
 import { db } from '../dataset/db.js';
 import { loadBaseDataset } from '../dataset/baseDataset.js';
+import { NONE_LABEL } from '../dataset/dataset.js';
 import { labelName } from './trainView.js';
 import { passwordField } from './passwordField.js';
 
@@ -84,7 +85,12 @@ export class ProfileView {
         loadBaseDataset(),
         db.getAllSamples(),
       ]);
-      this.data = { profile, board, vocabulary: base?.vocabulary ?? [], unsynced: local.filter((s) => !s.synced).length };
+      this.data = {
+        profile,
+        board,
+        vocabulary: (base?.vocabulary ?? []).filter((v) => v.label !== NONE_LABEL),
+        unsynced: local.filter((s) => !s.synced).length,
+      };
       this.error = null;
     } catch (err) {
       this.error = err instanceof ApiError ? err.message : String(err);

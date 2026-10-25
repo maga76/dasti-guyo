@@ -7,6 +7,7 @@ import { findWarnings } from '../src/dataset/dataset.js';
 import { RecordError, Recorder } from '../src/dataset/recorder.js';
 import { loadBaseDataset } from '../src/dataset/baseDataset.js';
 import { GestureClassifier, loadTf } from '../src/model/classifier.js';
+import { MIN_MOTION, motionSpeed } from '../src/recognizer/recognizer.js';
 
 const out = document.getElementById('out');
 let passed = 0;
@@ -211,6 +212,29 @@ await check('Текст → жесты для аватара (формы сло�
 await check('Вход модели — 2112 чисел', () => {
   assert(sequenceFeatures(fakeSample(0, 7).frames).length === INPUT_SIZE, 'неверный размер');
 });
+
+await check('Руки стоят — не жест, руки двигаются — жест', async () => {
+  const { base, data } = await realSample();
+  // Неподвижная рука с дрожанием камеры: тот же кадр + шум ~1% ладони, 30 кадров/с
+  const still = Array.from({ length: 30 }, (_, k) => ({
+    t: k * 33,
+    frame: base.map((v, i) => (i % 66 < 63 ? v + (Math.random() - 0.5) * 0.02 : v)),
+  }));
+  const vStill = motionSpeed(still);
+  // Настоящий жест из записи Slovo, растянутый на 1 с
+  const moving = data.map((frame, k) => ({ t: (k * 1000) / data.length, frame }));
+  const vMove = motionSpeed(moving);
+  assert(vStill < MIN_MOTION, `неподвижная рука: ${vStill.toFixed(2)} ладони/с`);
+  assert(vMove > MIN_MOTION, `жест: ${vMove.toFixed(2)} ладони/с`);
+  return `неподвижно ${vStill.toFixed(2)}, жест ${vMove.toFixed(2)} ладони/с (порог ${MIN_MOTION})`;
+});
+
+/** Кадр и запись «Салом» из набора Slovo. */
+async function realSample() {
+  const set = await loadBaseDataset();
+  const sample = set.samples.find((s) => s.label === 'Салом' && s.frames.every((f) => f[65] > 0));
+  return { base: Array.from(sample.frames[0]), data: sample.frames };
+}
 
 await classifier.clear();
 

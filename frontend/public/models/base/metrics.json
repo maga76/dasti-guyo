@@ -1,31 +1,31 @@
 {
- "createdAt": "2026-10-22T13:44:48.145473+00:00",
+ "createdAt": "2026-10-25T07:22:05.577106+00:00",
  "source": "Slovo (SberDevices), русский жестовый язык, CC BY-SA 4.0",
- "classes": 25,
- "samples": 498,
+ "classes": 26,
+ "samples": 1578,
  "signersTrain": 33,
  "signersTest": 54,
- "testAccuracy": 0.736,
+ "testAccuracy": 0.64,
  "perClass": [
   {
    "label": "Салом",
-   "accuracy": 1.0
-  },
-  {
-   "label": "Хайр",
    "accuracy": 0.8
   },
   {
+   "label": "Хайр",
+   "accuracy": 0.6
+  },
+  {
    "label": "Ҳа",
-   "accuracy": 0.4
+   "accuracy": 0.6
   },
   {
    "label": "Не",
-   "accuracy": 0.4
+   "accuracy": 0.2
   },
   {
    "label": "Хуб",
-   "accuracy": 0.6
+   "accuracy": 0.4
   },
   {
    "label": "Бад",
@@ -49,11 +49,11 @@
   },
   {
    "label": "Падар",
-   "accuracy": 0.8
+   "accuracy": 0.6
   },
   {
    "label": "Дӯст",
-   "accuracy": 0.8
+   "accuracy": 1.0
   },
   {
    "label": "Ман",
@@ -61,11 +61,11 @@
   },
   {
    "label": "Ту",
-   "accuracy": 1.0
+   "accuracy": 0.6
   },
   {
    "label": "Мо",
-   "accuracy": 0.8
+   "accuracy": 0.4
   },
   {
    "label": "Хона",
@@ -73,7 +73,7 @@
   },
   {
    "label": "Мактаб",
-   "accuracy": 1.0
+   "accuracy": 0.6
   },
   {
    "label": "Миннатдорӣ",
@@ -81,7 +81,7 @@
   },
   {
    "label": "Чӣ",
-   "accuracy": 0.6
+   "accuracy": 0.4
   },
   {
    "label": "Чаро",
@@ -97,15 +97,19 @@
   },
   {
    "label": "Имрӯз",
-   "accuracy": 1.0
+   "accuracy": 0.8
   },
   {
    "label": "Фардо",
-   "accuracy": 0.6
+   "accuracy": 0.4
   },
   {
    "label": "Хӯрок",
    "accuracy": 0.4
+  },
+  {
+   "label": "__none__",
+   "accuracy": null
   }
  ],
  "testCounts": {
@@ -133,350 +137,380 @@
   "Фаҳмидан": 5,
   "Имрӯз": 5,
   "Фардо": 5,
-  "Хӯрок": 5
+  "Хӯрок": 5,
+  "__none__": 0
  },
  "confused": [
   {
-   "a": "Модар",
-   "b": "Салом",
+   "a": "Чӣ",
+   "b": "__none__",
+   "share": 0.6
+  },
+  {
+   "a": "Не",
+   "b": "__none__",
    "share": 0.4
   },
   {
-   "a": "Ман",
-   "b": "Хостан",
-   "share": 0.4
-  },
-  {
-   "a": "Фардо",
-   "b": "Хайр",
-   "share": 0.4
-  },
-  {
-   "a": "Хӯрок",
-   "b": "Бад",
-   "share": 0.4
-  },
-  {
-   "a": "Хайр",
-   "b": "Салом",
-   "share": 0.2
-  },
-  {
-   "a": "Ҳа",
-   "b": "Чаро",
-   "share": 0.2
-  },
-  {
-   "a": "Ҳа",
+   "a": "Хуб",
    "b": "Ёрӣ додан",
-   "share": 0.2
+   "share": 0.4
   },
   {
-   "a": "Ҳа",
-   "b": "Не",
-   "share": 0.2
+   "a": "Модар",
+   "b": "__none__",
+   "share": 0.4
+  },
+  {
+   "a": "Падар",
+   "b": "__none__",
+   "share": 0.4
+  },
+  {
+   "a": "Мо",
+   "b": "__none__",
+   "share": 0.4
+  },
+  {
+   "a": "Мактаб",
+   "b": "__none__",
+   "share": 0.4
+  },
+  {
+   "a": "Чаро",
+   "b": "__none__",
+   "share": 0.4
   }
  ],
+ "rejection": {
+  "accept": 0.6,
+  "words": {
+   "accuracy": 0.64,
+   "acceptedCorrect": 0.592,
+   "acceptedWrong": 0.12,
+   "missed": 0.288
+  },
+  "otherNewPeople": {
+   "n": 240,
+   "falseAccept": 0.1292
+  },
+  "heldout": {
+   "n": 120,
+   "falseAccept": 0.1417
+  },
+  "before": {
+   "words": {
+    "accuracy": 0.744,
+    "acceptedCorrect": 0.72,
+    "acceptedWrong": 0.192,
+    "missed": 0.088
+   },
+   "heldout": {
+    "n": 120,
+    "falseAccept": 0.8333
+   }
+  }
+ },
  "curve": [
   {
    "epoch": 1,
-   "train": 0.7212,
-   "test": 0.56
+   "train": 0.7131,
+   "test": 0.496
   },
   {
    "epoch": 2,
-   "train": 0.9115,
-   "test": 0.608
+   "train": 0.9196,
+   "test": 0.592
   },
   {
    "epoch": 3,
-   "train": 0.9544,
-   "test": 0.712
+   "train": 0.9223,
+   "test": 0.616
   },
   {
    "epoch": 4,
-   "train": 0.9946,
-   "test": 0.76
+   "train": 0.9625,
+   "test": 0.648
   },
   {
    "epoch": 5,
    "train": 0.992,
-   "test": 0.712
+   "test": 0.664
   },
   {
    "epoch": 6,
    "train": 0.992,
-   "test": 0.704
+   "test": 0.656
   },
   {
    "epoch": 7,
-   "train": 0.9973,
-   "test": 0.752
+   "train": 0.992,
+   "test": 0.704
   },
   {
    "epoch": 8,
-   "train": 1.0,
+   "train": 0.9973,
    "test": 0.688
   },
   {
    "epoch": 9,
    "train": 0.9973,
-   "test": 0.76
+   "test": 0.648
   },
   {
    "epoch": 10,
-   "train": 0.9973,
-   "test": 0.688
+   "train": 0.9866,
+   "test": 0.608
   },
   {
    "epoch": 11,
-   "train": 0.992,
-   "test": 0.752
+   "train": 0.9786,
+   "test": 0.624
   },
   {
    "epoch": 12,
-   "train": 1.0,
-   "test": 0.72
+   "train": 0.9866,
+   "test": 0.672
   },
   {
    "epoch": 13,
-   "train": 1.0,
-   "test": 0.744
+   "train": 0.992,
+   "test": 0.648
   },
   {
    "epoch": 14,
-   "train": 1.0,
-   "test": 0.72
+   "train": 0.9973,
+   "test": 0.68
   },
   {
    "epoch": 15,
-   "train": 0.9973,
-   "test": 0.744
+   "train": 1.0,
+   "test": 0.688
   },
   {
    "epoch": 16,
-   "train": 1.0,
-   "test": 0.736
+   "train": 0.9973,
+   "test": 0.68
   },
   {
    "epoch": 17,
    "train": 1.0,
-   "test": 0.744
+   "test": 0.68
   },
   {
    "epoch": 18,
-   "train": 1.0,
-   "test": 0.752
+   "train": 0.9946,
+   "test": 0.648
   },
   {
    "epoch": 19,
    "train": 1.0,
-   "test": 0.784
+   "test": 0.672
   },
   {
    "epoch": 20,
-   "train": 1.0,
-   "test": 0.76
+   "train": 0.9973,
+   "test": 0.672
   },
   {
    "epoch": 21,
    "train": 1.0,
-   "test": 0.76
+   "test": 0.64
   },
   {
    "epoch": 22,
    "train": 1.0,
-   "test": 0.768
+   "test": 0.648
   },
   {
    "epoch": 23,
    "train": 1.0,
-   "test": 0.744
+   "test": 0.672
   },
   {
    "epoch": 24,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.672
   },
   {
    "epoch": 25,
-   "train": 1.0,
-   "test": 0.744
+   "train": 0.992,
+   "test": 0.656
   },
   {
    "epoch": 26,
-   "train": 1.0,
-   "test": 0.768
+   "train": 0.9973,
+   "test": 0.632
   },
   {
    "epoch": 27,
-   "train": 1.0,
-   "test": 0.728
+   "train": 0.9973,
+   "test": 0.664
   },
   {
    "epoch": 28,
-   "train": 1.0,
-   "test": 0.736
+   "train": 0.9973,
+   "test": 0.64
   },
   {
    "epoch": 29,
    "train": 1.0,
-   "test": 0.744
+   "test": 0.648
   },
   {
    "epoch": 30,
    "train": 1.0,
-   "test": 0.728
+   "test": 0.68
   },
   {
    "epoch": 31,
    "train": 1.0,
-   "test": 0.728
+   "test": 0.664
   },
   {
    "epoch": 32,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.704
   },
   {
    "epoch": 33,
    "train": 1.0,
-   "test": 0.744
+   "test": 0.656
   },
   {
    "epoch": 34,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.608
   },
   {
    "epoch": 35,
    "train": 1.0,
-   "test": 0.744
+   "test": 0.616
   },
   {
    "epoch": 36,
    "train": 1.0,
-   "test": 0.744
+   "test": 0.664
   },
   {
    "epoch": 37,
    "train": 1.0,
-   "test": 0.744
+   "test": 0.648
   },
   {
    "epoch": 38,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.64
   },
   {
    "epoch": 39,
    "train": 1.0,
-   "test": 0.728
+   "test": 0.632
   },
   {
    "epoch": 40,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.672
   },
   {
    "epoch": 41,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.64
   },
   {
    "epoch": 42,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.64
   },
   {
    "epoch": 43,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.632
   },
   {
    "epoch": 44,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.624
   },
   {
    "epoch": 45,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.624
   },
   {
    "epoch": 46,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.656
   },
   {
    "epoch": 47,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.624
   },
   {
    "epoch": 48,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.64
   },
   {
    "epoch": 49,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.6
   },
   {
    "epoch": 50,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.632
   },
   {
    "epoch": 51,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.616
   },
   {
    "epoch": 52,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.64
   },
   {
    "epoch": 53,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.632
   },
   {
    "epoch": 54,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.64
   },
   {
    "epoch": 55,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.632
   },
   {
    "epoch": 56,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.624
   },
   {
    "epoch": 57,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.64
   },
   {
    "epoch": 58,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.624
   },
   {
    "epoch": 59,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.608
   },
   {
    "epoch": 60,
    "train": 1.0,
-   "test": 0.736
+   "test": 0.64
   }
  ],
  "vocabulary": [
@@ -628,6 +662,12 @@
    "label": "Хӯрок",
    "ru": "Еда",
    "slovo": "еда",
+   "note": ""
+  },
+  {
+   "label": "__none__",
+   "ru": "Нет жеста",
+   "slovo": "no_event",
    "note": ""
   }
  ]

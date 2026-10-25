@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { INPUT_SIZE, POINTS, SLOT, sequenceFeatures } from '../dataset/features.js';
 import { PALM_SIGN } from './rig.js';
+import { NONE_LABEL } from '../dataset/dataset.js';
 
 const CLIP_SECONDS = 2.0; // длительность одного жеста при скорости 1× (медленнее, чем в жизни, — чтобы было понятно)
 const GAP_SECONDS = 0.25; // пауза между словами
@@ -24,6 +25,8 @@ const MAX_HOLD_FRAMES = 4; // сколько кадров «держать» р�
 export function pickRepresentatives(samples) {
   const byLabel = new Map();
   for (const s of samples) {
+    // «Нет жеста / не наш жест» показывать нечего — это записи других слов
+    if (s.label === NONE_LABEL) continue;
     const visible = s.frames.filter((f) => f[65] > 0).length / s.frames.length;
     if (visible < 0.8) continue;
     if (!byLabel.has(s.label)) byLabel.set(s.label, []);
