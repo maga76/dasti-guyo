@@ -1,4 +1,5 @@
-"""Заранее озвучивает все известные слова и быстрые фразы таджикским голосом.
+"""Заранее озвучивает все известные слова, быстрые фразы и слова тренажёра «Талаффуз»
+(frontend/public/data/speech-words.json) таджикским голосом.
 
 Файлы кладутся в frontend/public/audio/tts/ вместе с index.json (текст → файл).
 Так голос работает на сайте без интернета и без сервера.
@@ -27,7 +28,13 @@ def texts() -> list[str]:
     # Правила сборки предложений — чтобы готовые фразы звучали целиком и без сервера
     rules_file = ROOT / "frontend" / "public" / "data" / "phrases.json"
     rules = [p["text_tj"] for p in json.loads(rules_file.read_text(encoding="utf-8"))["phrases"]] if rules_file.exists() else []
-    return list(dict.fromkeys(words + phrases + rules))  # без повторов, порядок сохраняется
+    # Тренажёр произношения «Талаффуз»: слова для повторения и фразы-подсказки
+    speech_file = ROOT / "frontend" / "public" / "data" / "speech-words.json"
+    speech = []
+    if speech_file.exists():
+        data = json.loads(speech_file.read_text(encoding="utf-8"))
+        speech = [w["text"] for w in data["words"]] + list(data["feedback"].values())
+    return list(dict.fromkeys(words + phrases + rules + speech))  # без повторов, порядок сохраняется
 
 
 def main() -> None:

@@ -5,6 +5,7 @@ from app.models.gesture import Gesture, Sample
 from app.models.model_version import ModelVersion
 from app.models.phrase import Phrase, QuickPhrase
 from app.models.practice import PracticeResult
+from app.models.speech import SpeechResult
 from app.models.user import Role, User
 
 __all__ = [
@@ -16,5 +17,6 @@ __all__ = [
     "QuickPhrase",
     "Role",
     "Sample",
+    "SpeechResult",
     "User",
 ]

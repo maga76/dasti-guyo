@@ -16,22 +16,26 @@ const ERROR_KEYS = {
  * Слушать речь до паузы.
  * @param {object} opts
  * @param {string} opts.lang 'tg-TJ' | 'ru-RU'
- * @param {(text: string, final: boolean) => void} opts.onText
+ * @param {(text: string, final: boolean, alternatives: string[]) => void} opts.onText
+ *   alternatives — другие варианты того, что услышано (их просят через opts.alternatives)
  * @param {(i18nKey: string, code: string) => void} [opts.onError]
  * @param {() => void} [opts.onEnd]
+ * @param {number} [opts.alternatives] сколько вариантов распознавания просить (по умолчанию 1)
  * @returns {{stop: () => void} | null} null — браузер не умеет распознавать речь
  */
-export function listen({ lang, onText, onError, onEnd }) {
+export function listen({ lang, onText, onError, onEnd, alternatives = 1 }) {
   if (!Recognition) return null;
   const rec = new Recognition();
   rec.lang = lang;
   rec.interimResults = true;
   rec.continuous = false;
+  rec.maxAlternatives = alternatives;
   rec.onresult = (event) => {
-    const text = Array.from(event.results)
-      .map((r) => r[0].transcript)
-      .join(' ');
-    onText(text, event.results[event.results.length - 1].isFinal);
+    const results = Array.from(event.results);
+    const text = results.map((r) => r[0].transcript).join(' ');
+    const last = results[results.length - 1];
+    const alts = Array.from(last, (alt) => alt.transcript);
+    onText(text, last.isFinal, alts);
   };
   rec.onerror = (event) => onError?.(ERROR_KEYS[event.error] ?? 'tr.micError', event.error);
   rec.onend = () => onEnd?.();

@@ -20,6 +20,7 @@ import { PracticeView } from './ui/practiceView.js';
 import { AdminView } from './ui/adminView.js';
 import { AvatarView } from './ui/avatarView.js';
 import { ProfileView } from './ui/profileView.js';
+import { SpeechView } from './ui/speechView.js';
 import { initPasswordToggles } from './ui/passwordField.js';
 import { initNetworkBadge } from './ui/network.js';
 import { initRouter } from './ui/router.js';
@@ -55,6 +56,7 @@ const modelView = new ModelView({ classifier });
 const adminView = new AdminView();
 const avatarView = new AvatarView();
 const profileView = new ProfileView();
+const speechView = new SpeechView();
 initPasswordToggles();
 new ReplyView();
 const onModelChange = () => {
@@ -289,6 +291,7 @@ initRouter((route) => {
   adminView.setActive(route === 'admin');
   avatarView.setActive(route === 'avatar');
   profileView.setActive(route === 'profile');
+  speechView.setActive(route === 'speech');
 });
 renderStatus();
 renderStats();

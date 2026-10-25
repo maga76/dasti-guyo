@@ -21,9 +21,14 @@ export const config = {
     minDetectionConfidence: 0.5,
     minPresenceConfidence: 0.6,
     minTrackingConfidence: 0.5,
-    // Насколько уверенно MediaPipe определил левая/правая: у настоящих рук ≥ 0.69,
-    // у ложных срабатываний обычно ниже
-    minHandScore: 0.6,
+    // Насколько уверенно MediaPipe определил левая/правая. Слабый признак: у далёкой настоящей руки
+    // бывает 0.53, а у узора на флаге — 0.98; отсекает только совсем сомнительное
+    minHandScore: 0.5,
+    // Поза тела: кисть засчитывается, если до запястья человека не больше стольких размеров кисти
+    poseModelPath: `${base}models/pose_landmarker_lite.task`,
+    poseModelUrl:
+      'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+    bodyHandDistance: 2,
     // Рука засчитывается, если держится столько кадров подряд: ложная «рука» на лице обычно мелькает
     stableFrames: 3,
     // MediaPipe считает, что кадр уже отзеркален (как селфи). Мы подаём

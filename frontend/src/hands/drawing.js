@@ -1,4 +1,8 @@
-// Рисует точки и линии рук поверх видео.
+// Рисует руки поверх видео: полупрозрачная ладонь, пальцы — плавные линии, которые
+// сужаются к кончикам, точки — только на кончиках пальцев.
+// Для рисования точки сглаживаются фильтром One Euro: дрожание камеры убирается, а при быстром
+// движении сглаживание почти выключается — рисунок не отстаёт от руки. Распознавание получает
+// исходные, несглаженные точки.
 // Холст отзеркален через CSS вместе с видео, поэтому точки рисуем
 // в исходных координатах, а текст дополнительно переворачиваем, чтобы он читался.
 
@@ -25,6 +29,57 @@ const HAND_COLORS = {
   left: '#5EC8E5',
 };
 
+// Пальцы — цепочки от основания к кончику (большой — от запястья)
+const FINGER_CHAINS = [
+  [0, 1, 2, 3, 4],
+  [5, 6, 7, 8],
+  [9, 10, 11, 12],
+  [13, 14, 15, 16],
+  [17, 18, 19, 20],
+];
+// Контур ладони
+const PALM = [0, 1, 5, 9, 13, 17];
+
+/**
+ * Фильтр One Euro (Casiez и др., 2012) для одной координаты: чем медленнее движение,
+ * тем сильнее сглаживание; при быстром — почти без задержки.
+ * Координаты — доли кадра (0…1), время — в секундах.
+ */
+class OneEuro {
+  constructor(minCutoff = 1.5, beta = 4, dCutoff = 1) {
+    Object.assign(this, { minCutoff, beta, dCutoff, x: null, dx: 0, t: 0 });
+  }
+
+  static alpha(cutoff, dt) {
+    const tau = 1 / (2 * Math.PI * cutoff);
+    return 1 / (1 + tau / dt);
+  }
+
+  filter(value, t) {
+    if (this.x === null) {
+      this.x = value;
+      this.t = t;
+      return value;
+    }
+    const dt = Math.max(t - this.t, 1e-3);
+    this.t = t;
+    const dx = (value - this.x) / dt;
+    this.dx += OneEuro.alpha(this.dCutoff, dt) * (dx - this.dx);
+    const cutoff = this.minCutoff + this.beta * Math.abs(this.dx);
+    this.x += OneEuro.alpha(cutoff, dt) * (value - this.x);
+    return this.x;
+  }
+}
+
+// Фильтры по руке: левая/правая × 21 точка × (x, y). Рука пропала — фильтры сбрасываются.
+const smoothers = { left: null, right: null };
+
+function smoothPoints(hand, t) {
+  smoothers[hand.side] ??= hand.landmarks.map(() => [new OneEuro(), new OneEuro()]);
+  const f = smoothers[hand.side];
+  return hand.landmarks.map((p, i) => [f[i][0].filter(p.x, t), f[i][1].filter(p.y, t)]);
+}
+
 /**
  * @param {CanvasRenderingContext2D} ctx
  * @param {import('./handTracker.js').Hand[]} hands
@@ -33,39 +88,69 @@ const HAND_COLORS = {
 export function drawHands(ctx, hands, { mirrored, labels }) {
   const { width: w, height: h } = ctx.canvas;
   ctx.clearRect(0, 0, w, h);
+  const t = performance.now() / 1000;
+  for (const side of ['left', 'right']) {
+    if (!hands.some((hand) => hand.side === side)) smoothers[side] = null;
+  }
   if (!hands.length) return;
 
   const unit = Math.max(1.5, w / 320);
 
   for (const hand of hands) {
     const color = HAND_COLORS[hand.side];
-    const pts = hand.landmarks.map((p) => [p.x * w, p.y * h]);
+    const pts = smoothPoints(hand, t).map(([x, y]) => [x * w, y * h]);
+    // Толщина — от размера руки в кадре: дальняя рука тоньше, ближняя толще
+    const palm = Math.hypot(pts[9][0] - pts[0][0], pts[9][1] - pts[0][1]);
+    const thick = Math.min(Math.max(palm * 0.09, unit * 1.6), unit * 5);
 
-    // Линии: тёмная подложка + цветная линия — видно на любом фоне
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    for (const [stroke, width] of [['rgba(0,0,0,0.55)', unit * 2.4], [color, unit * 1.3]]) {
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = width;
+
+    // Ладонь: полупрозрачная заливка и тонкий контур
+    ctx.beginPath();
+    PALM.forEach((i, k) => (k ? ctx.lineTo(...pts[i]) : ctx.moveTo(...pts[i])));
+    ctx.closePath();
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = thick * 0.45;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Пальцы: подложка со свечением — одной линией на весь палец (без «бугров» на суставах),
+    // сверху цветные фаланги, к кончику тоньше
+    for (const chain of FINGER_CHAINS) {
       ctx.beginPath();
-      for (const [a, b] of CONNECTIONS) {
-        ctx.moveTo(pts[a][0], pts[a][1]);
-        ctx.lineTo(pts[b][0], pts[b][1]);
-      }
+      chain.forEach((i, k) => (k ? ctx.lineTo(...pts[i]) : ctx.moveTo(...pts[i])));
+      ctx.shadowColor = color;
+      ctx.shadowBlur = thick * 2;
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.lineWidth = thick + unit;
       ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = color;
+      for (let k = 1; k < chain.length; k++) {
+        ctx.beginPath();
+        ctx.moveTo(...pts[chain[k - 1]]);
+        ctx.lineTo(...pts[chain[k]]);
+        ctx.lineWidth = thick * (1 - (k - 1) * 0.16);
+        ctx.stroke();
+      }
     }
 
-    // Точки
-    pts.forEach(([x, y], i) => {
-      const r = FINGERTIPS.has(i) ? unit * 2.6 : unit * 1.8;
+    // Кончики пальцев — единственные точки
+    for (const i of FINGERTIPS) {
+      const [x, y] = pts[i];
       ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.arc(x, y, thick * 0.75, 0, Math.PI * 2);
       ctx.fillStyle = '#FFFFFF';
       ctx.fill();
-      ctx.lineWidth = unit * 0.9;
+      ctx.lineWidth = thick * 0.35;
       ctx.strokeStyle = color;
       ctx.stroke();
-    });
+    }
 
     drawLabel(ctx, labels[hand.side], pts[0], color, unit, mirrored);
   }
@@ -101,6 +186,7 @@ function drawLabel(ctx, text, [x, y], color, unit, mirrored) {
 
 export function clearCanvas(ctx) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  smoothers.left = smoothers.right = null;
 }
 
 /**

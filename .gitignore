@@ -4,6 +4,9 @@ frontend/dist/
 # Скачиваются скриптом frontend/scripts/fetch-assets.mjs
 frontend/public/mediapipe/
 frontend/public/models/hand_landmarker.task
+frontend/public/models/pose_landmarker_lite.task
+# Временные картинки для проверок
+frontend/public/_faces/
 # (frontend/public/models/base — наша обученная модель, она в репозитории)
 
 # Python / бэкенд

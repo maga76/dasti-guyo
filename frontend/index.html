@@ -27,6 +27,10 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
           <span data-i18n="nav.train"></span>
         </a>
+        <a href="#/speech" data-route="speech">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
+          <span data-i18n="nav.speech"></span>
+        </a>
         <a href="#/practice" data-route="practice">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM7 6H4a3 3 0 003 4M17 6h3a3 3 0 01-3 4"/></svg>
           <span data-i18n="nav.practice"></span>
@@ -304,6 +308,11 @@
       <!-- ===== Страница «Идоракунӣ» (содержимое рисует src/ui/adminView.js) ===== -->
       <section class="admin-page view" data-view="admin" hidden>
         <div id="adminRoot"></div>
+      </section>
+
+      <!-- ===== Экран «Талаффуз»: тренажёр произношения с голосовым помощником ===== -->
+      <section class="speech-page view" data-view="speech" hidden>
+        <div id="speechRoot"></div>
       </section>
 
       <!-- ===== Экран «Профил»: регистрация, вклад в ИИ, знание жестов ===== -->

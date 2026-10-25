@@ -1,12 +1,12 @@
-"""Личный кабинет: профиль, результаты тренажёра, таблица лучших."""
+"""Личный кабинет: профиль, результаты тренажёров (жесты, произношение), таблица лучших."""
 
 from fastapi import APIRouter, status
 from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentUser
-from app.models import PracticeResult, Sample, User
-from app.schemas.profile import LeaderboardOut, LeaderRow, PracticeIn, PracticeOut, ProfileOut
-from app.services.profile import profile
+from app.models import PracticeResult, Sample, SpeechResult, User
+from app.schemas.profile import LeaderboardOut, LeaderRow, PracticeIn, PracticeOut, ProfileOut, SpeechIn, SpeechOut
+from app.services.profile import SPEECH_PASS, profile
 
 router = APIRouter(tags=["profile"])
 
@@ -38,6 +38,22 @@ def save_practice(data: PracticeIn, db: DB, user: CurrentUser):
     db.commit()
     db.refresh(result)
     return result
+
+
+@router.post(
+    "/me/speech",
+    response_model=SpeechOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Сохранить попытку в тренажёре произношения «Талаффуз»",
+)
+def save_speech(data: SpeechIn, db: DB, user: CurrentUser):
+    result = SpeechResult(user_id=user.id, word=data.word.strip(), score=data.score, heard=data.heard)
+    db.add(result)
+    db.commit()
+    db.refresh(result)
+    return SpeechOut(
+        id=result.id, word=result.word, score=result.score, ok=result.score >= SPEECH_PASS, created_at=result.created_at
+    )
 
 
 @router.get("/leaderboard", response_model=LeaderboardOut, summary="Лучшие помощники ИИ и игроки (только имена)")

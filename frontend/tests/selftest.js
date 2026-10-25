@@ -8,6 +8,7 @@ import { RecordError, Recorder } from '../src/dataset/recorder.js';
 import { loadBaseDataset } from '../src/dataset/baseDataset.js';
 import { GestureClassifier, loadTf } from '../src/model/classifier.js';
 import { MIN_MOTION, motionSpeed } from '../src/recognizer/recognizer.js';
+import { compare, specialMistakes, wrongSyllables } from '../src/speech/pronunciation.js';
 
 const out = document.getElementById('out');
 let passed = 0;
@@ -211,6 +212,21 @@ await check('Текст → жесты для аватара (формы сло�
 
 await check('Вход модели — 2112 чисел', () => {
   assert(sequenceFeatures(fakeSample(0, 7).frames).length === INPUT_SIZE, 'неверный размер');
+});
+
+await check('Талаффуз: оценка произношения и подсказки', async () => {
+  // Русский распознаватель пишет таджикские слова по-своему — это должно засчитываться
+  assert(compare('Салом', 'салам').score >= 0.75, 'салам ≈ Салом');
+  assert(compare('Ташаккур', 'ташакур').score === 1, 'двойная буква');
+  assert(compare('Ҷавоб', 'джавоб').score === 1, 'ҷ = дж');
+  assert(compare('Модар', 'мама').score < 0.75, 'мама ≠ Модар');
+  // Ошибка в «ҷ» подсвечивается и даёт подсказку по этой букве
+  const r = compare('Ҷавоб', 'чавоб');
+  assert(r.wrong.has(0) && !r.wrong.has(1), 'подсвечена не та буква');
+  assert(specialMistakes('Ҷавоб', r.wrong).join() === 'ҷ', 'нет подсказки по ҷ');
+  assert(wrongSyllables('Ҷавоб', ['Ҷа', 'воб'], r.wrong).join() === 'true,false', 'слог с ошибкой');
+  const words = await (await fetch('../public/data/speech-words.json').catch(() => fetch('/data/speech-words.json'))).json();
+  return `слов в тренажёре: ${words.words.length}, «чавоб» вместо «Ҷавоб» — ${Math.round(r.score * 100)}%`;
 });
 
 await check('Руки стоят — не жест, руки двигаются — жест', async () => {

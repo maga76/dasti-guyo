@@ -68,6 +68,48 @@ class Knowledge(BaseModel):
     history: list[PracticeOut]
 
 
+class SpeechIn(BaseModel):
+    """Одна попытка в тренажёре произношения: оценку (0…1) считает браузер."""
+
+    word: str = Field(min_length=1, max_length=100)
+    score: float = Field(ge=0, le=1)
+    heard: str | None = Field(default=None, max_length=200)
+
+
+class SpeechOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    word: str
+    score: float
+    ok: bool
+    created_at: datetime
+
+
+class SpeechWord(BaseModel):
+    word: str
+    attempts: int
+    correct: int
+    best: float
+    last: float
+    mastered: bool
+
+
+class SpeechAttempt(BaseModel):
+    word: str
+    score: float
+    ok: bool
+    created_at: datetime
+
+
+class Speech(BaseModel):
+    attempts: int
+    correct: int
+    mastered_words: int
+    words: list[SpeechWord]
+    history: list[SpeechAttempt]
+
+
 class ProfileOut(BaseModel):
     user: UserOut
     points: int
@@ -75,6 +117,7 @@ class ProfileOut(BaseModel):
     next_level_points: int | None
     contribution: Contribution
     knowledge: Knowledge
+    speech: Speech
 
 
 class LeaderRow(BaseModel):

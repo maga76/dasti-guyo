@@ -1,8 +1,9 @@
 """Профиль: вклад человека в обучение нашей нейросети и его знание жестов.
 
-Баллы — за обе вещи сразу, чтобы было интересно и учить язык, и помогать ИИ:
+Баллы — за всё сразу, чтобы было интересно и учить язык, и помогать ИИ:
   одобренная запись жеста — 10, запись на проверке — 2,
-  правильно показанный жест в тренажёре — 3, выученный жест — 20.
+  правильно показанный жест в тренажёре — 3, выученный жест — 20,
+  правильно произнесённое слово в «Талаффуз» — 2, освоенное слово — 10.
 """
 
 from collections import defaultdict
@@ -10,13 +11,16 @@ from collections import defaultdict
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
-from app.models import Gesture, ModelVersion, PracticeResult, Sample, User
+from app.models import Gesture, ModelVersion, PracticeResult, Sample, SpeechResult, User
 from app.schemas.profile import (
     Contribution,
     GestureContribution,
     Knowledge,
     PracticeOut,
     ProfileOut,
+    Speech,
+    SpeechAttempt,
+    SpeechWord,
     WordSkill,
 )
 from app.schemas.users import UserOut
@@ -25,6 +29,14 @@ POINTS_APPROVED = 10
 POINTS_PENDING = 2
 POINTS_CORRECT_ROUND = 3
 POINTS_KNOWN_WORD = 20
+POINTS_SPEECH_CORRECT = 2
+POINTS_SPEECH_MASTERED = 10
+
+# Произношение: попытка засчитана, если похожесть ≥ SPEECH_PASS (как на сайте, speech-words.json → pass).
+# Слово освоено: не меньше 2 удачных попыток и последняя — удачная
+SPEECH_PASS = 0.75
+SPEECH_MASTERED_OK = 2
+SPEECH_HISTORY = 30
 
 # Уровень → с какого количества баллов (по возрастанию)
 LEVELS = [("novice", 0), ("learner", 100), ("helper", 300), ("expert", 700), ("master", 1500)]
@@ -118,14 +130,51 @@ def knowledge(db: Session, user: User) -> Knowledge:
     )
 
 
+def speech(db: Session, user: User) -> Speech:
+    attempts = db.scalars(
+        select(SpeechResult).where(SpeechResult.user_id == user.id).order_by(SpeechResult.created_at, SpeechResult.id)
+    ).all()
+    # По словам без учёта регистра; показываем написание последней попытки
+    groups: dict[str, list[SpeechResult]] = defaultdict(list)
+    for a in attempts:
+        groups[a.word.strip().lower()].append(a)
+    words = []
+    for items in groups.values():
+        oks = [a.score >= SPEECH_PASS for a in items]
+        words.append(
+            SpeechWord(
+                word=items[-1].word,
+                attempts=len(items),
+                correct=sum(oks),
+                best=round(max(a.score for a in items), 3),
+                last=round(items[-1].score, 3),
+                mastered=sum(oks) >= SPEECH_MASTERED_OK and oks[-1],
+            )
+        )
+    words.sort(key=lambda w: (not w.mastered, -w.best, w.word))
+    return Speech(
+        attempts=len(attempts),
+        correct=sum(a.score >= SPEECH_PASS for a in attempts),
+        mastered_words=sum(w.mastered for w in words),
+        words=words,
+        history=[
+            SpeechAttempt(word=a.word, score=round(a.score, 3), ok=a.score >= SPEECH_PASS, created_at=a.created_at)
+            for a in attempts[-SPEECH_HISTORY:]
+        ],
+    )
+
+
 def profile(db: Session, user: User) -> ProfileOut:
     contrib = contribution(db, user)
     know = knowledge(db, user)
+    talk = speech(db, user)
     points = (
         contrib.approved * POINTS_APPROVED
         + contrib.pending * POINTS_PENDING
         + know.correct * POINTS_CORRECT_ROUND
         + know.known_words * POINTS_KNOWN_WORD
+        + talk.correct * POINTS_SPEECH_CORRECT
+        + talk.mastered_words * POINTS_SPEECH_MASTERED
     )
     level, next_points = level_for(points)
     return ProfileOut(
@@ -135,4 +184,5 @@ def profile(db: Session, user: User) -> ProfileOut:
         next_level_points=next_points,
         contribution=contrib,
         knowledge=know,
+        speech=talk,
     )

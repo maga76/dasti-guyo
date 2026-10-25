@@ -8,6 +8,7 @@ import { getLang, onLangChange, t } from '../i18n/i18n.js';
 import { ApiError, api, getUser, login, logout, onAuthChange, register } from '../api/api.js';
 import { syncSamples } from '../api/sync.js';
 import { flushPractice } from '../api/practiceSync.js';
+import { flushSpeech } from '../api/speechSync.js';
 import { db } from '../dataset/db.js';
 import { loadBaseDataset } from '../dataset/baseDataset.js';
 import { NONE_LABEL } from '../dataset/dataset.js';
@@ -78,7 +79,7 @@ export class ProfileView {
     this.loading = true;
     this.paint();
     try {
-      await Promise.all([flushPractice(), syncSamples()]);
+      await Promise.all([flushPractice(), flushSpeech(), syncSamples()]);
       const [profile, board, base, local] = await Promise.all([
         api('/me/profile'),
         api('/leaderboard').catch(() => null),
@@ -213,6 +214,7 @@ export class ProfileView {
         ${this.contributionHtml(c, unsynced)}
         ${this.knowledgeHtml(k, vocabulary)}
       </div>
+      ${p.speech ? this.speechHtml(p.speech) : ''}
       ${board ? this.boardHtml(board, user.username) : ''}
       <p class="muted pf-rules">${esc(t('pf.rules'))}</p>`;
   }
@@ -299,6 +301,29 @@ export class ProfileView {
           <span class="is-new">${esc(t('pf.legendNew'))}</span>
         </p>
         <div class="btn-row"><a class="btn btn-primary" href="#/practice">${esc(t('pf.practice'))}</a></div>
+      </section>`;
+  }
+
+  /** «Талаффузи ман»: попытки тренажёра произношения. */
+  speechHtml(s) {
+    const accuracy = s.attempts ? Math.round((s.correct / s.attempts) * 100) : 0;
+    const chips = s.words
+      .map((w) => {
+        const cls = w.mastered ? 'is-known' : w.best >= 0.5 ? 'is-learning' : 'is-hard';
+        return `<li class="${cls}" title="${esc(`${Math.round(w.best * 100)}% · ${w.attempts}`)}" lang="tg">${esc(w.word)}</li>`;
+      })
+      .join('');
+    return `
+      <section class="pf-card pf-speech">
+        <h2>${esc(t('pf.speechTitle'))}</h2>
+        ${
+          s.attempts
+            ? `<p class="pf-know-main">${esc(t('pf.speechMastered', { n: s.mastered_words }))}</p>
+               <p class="muted">${esc(t('pf.speechStats', { attempts: s.attempts, accuracy }))}</p>
+               <ul class="pf-words">${chips}</ul>`
+            : `<p class="muted">${esc(t('pf.speechEmpty'))}</p>`
+        }
+        <div class="btn-row"><a class="btn btn-primary" href="#/speech">${esc(t('pf.speechGo'))}</a></div>
       </section>`;
   }
 

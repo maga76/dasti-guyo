@@ -8,6 +8,7 @@ const ROUTES = {
   '#/admin': 'admin',
   '#/avatar': 'avatar',
   '#/profile': 'profile',
+  '#/speech': 'speech',
 };
 const DEFAULT = 'translate';
 
