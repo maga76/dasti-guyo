@@ -2595,28 +2595,88 @@ body[data-route='model'] .layout {
   color: var(--screen-muted);
 }
 
+.model-hero-main {
+  min-width: 0;
+}
+
+/* Три коротких факта под главным числом */
+.model-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.model-fact {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+  font-size: 0.9rem;
+  color: var(--screen-muted);
+}
+
+.model-fact b {
+  font-size: 1.15rem;
+  color: var(--screen-text);
+}
+
+.model-page h2 {
+  margin: 0 0 4px;
+}
+
+/* Карточка-блок страницы */
+.model-card {
+  padding: 22px 24px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.model-card > .hint {
+  margin: 0 0 14px;
+}
+
 /* Путь данных: камера → точки → движение → нейросеть → слово */
 .pipeline {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
-  margin: 0;
+  margin: 10px 0 0;
   padding: 0;
   list-style: none;
-  counter-reset: step;
 }
 
 .pipeline li {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: start;
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 14px;
   border-radius: var(--r-md);
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--line);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
+  line-height: 1.35;
   color: var(--muted);
+}
+
+.pipeline li i {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
 .pipeline li b {
@@ -2628,17 +2688,77 @@ body[data-route='model'] .layout {
   box-shadow: inset 0 0 0 2px var(--gold);
 }
 
+.pipeline li.is-ours i {
+  background: var(--gold);
+  box-shadow: none;
+  color: var(--gold-ink);
+}
+
+/* Защита от ошибок: четыре плитки */
+.guards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.guard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.guard b {
+  font-size: 1.7rem;
+  font-weight: 800;
+  font-stretch: 75%;
+  line-height: 1;
+  color: var(--gold);
+}
+
+.guard strong {
+  font-size: 1rem;
+  color: var(--text);
+}
+
 .model-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 28px;
+  align-items: start;
+  gap: 18px;
 }
 
-.model-grid .hint {
-  margin: 4px 0 12px;
+.model-card .warnings {
+  margin: 14px 0;
+}
+
+.model-card .warnings li {
+  font-size: 0.9rem;
+}
+
+/* Точность по жестам — в три колонки, а не одним длинным столбцом */
+.per-class .bars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 28px;
 }
 
 /* ---------- Телефон ---------- */
+
+@media (max-width: 1080px) {
+  .guards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .per-class .bars {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 
 @media (max-width: 900px) {
   .pipeline {
@@ -2649,11 +2769,22 @@ body[data-route='model'] .layout {
     grid-template-columns: 1fr;
   }
 
+  .model-card {
+    padding: 18px 16px;
+  }
+
   .model-hero {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
     padding: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  .guards,
+  .per-class .bars {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -7,9 +7,21 @@ import { NONE_LABEL } from '../dataset/dataset.js';
 import { loadBaseMetrics } from '../dataset/baseDataset.js';
 import { barList, lineChart } from './charts.js';
 import { labelName } from './trainView.js';
+import { DEFAULT_THRESHOLD, HISTORY, MIN_AGREE } from './translateView.js';
+import { MIN_MOTION } from '../recognizer/recognizer.js';
 
 const $ = (id) => document.getElementById(id);
 const pct = (v) => `${Math.round(v * 100)}%`;
+
+/** Плитка: {value, label} (факт) или {title, text, value?} (защита) → HTML-элемент. */
+function tile(className, { value, label, title, text }) {
+  const el = document.createElement('div');
+  el.className = className;
+  if (value != null) el.append(Object.assign(document.createElement('b'), { textContent: value }));
+  if (title) el.append(Object.assign(document.createElement('strong'), { textContent: title }));
+  el.append(Object.assign(document.createElement('span'), { textContent: label ?? text }));
+  return el;
+}
 
 export class ModelView {
   /** @param {{classifier: import('../model/classifier.js').GestureClassifier}} deps */
@@ -29,8 +41,31 @@ export class ModelView {
     if (active) this.update();
   }
 
+  /** Защита от ошибок — не зависит от того, загрузилась ли модель. */
+  renderGuards() {
+    // Цифры — из замеров при сборке модели (metrics.rejection) и настроек распознавания
+    const rejection = this.baseMetrics?.rejection;
+    const now = rejection?.heldout ? pct(rejection.heldout.falseAccept) : '—';
+    const guards = [
+      {
+        value: rejection?.heldout ? now : null,
+        title: t('model.guard1.title'),
+        text: t('model.guard1.text', { now, before: rejection?.before ? pct(rejection.before.heldout.falseAccept) : '—' }),
+      },
+      { value: `${MIN_MOTION}`, title: t('model.guard2.title'), text: t('model.guard2.text', { speed: MIN_MOTION }) },
+      { value: '✋', title: t('model.guard3.title'), text: t('model.guard3.text') },
+      {
+        value: `${MIN_AGREE}/${HISTORY}`,
+        title: t('model.guard4.title'),
+        text: t('model.guard4.text', { agree: MIN_AGREE, history: HISTORY, accept: pct(Number(DEFAULT_THRESHOLD)) }),
+      },
+    ];
+    $('mGuards').replaceChildren(...guards.map((g) => tile('guard', g)));
+  }
+
   update() {
     if (!this.active) return;
+    this.renderGuards();
     const meta = this.classifier.meta;
     if (!meta) {
       $('mAccuracy').textContent = '—';
@@ -51,6 +86,15 @@ export class ModelView {
       : '';
     $('mSource').textContent = t(`model.source.${meta.source}`, { n: words, date, version: meta.version });
     $('mArch').textContent = t('model.p4.arch', { n: meta.labels.length });
+
+    const facts = [{ value: words, label: t('model.fact.words') }];
+    if (base && metrics) {
+      facts.push(
+        { value: metrics.signersTrain + metrics.signersTest, label: t('model.fact.people') },
+        { value: metrics.samples, label: t('model.fact.samples') },
+      );
+    }
+    $('mFacts').replaceChildren(...facts.map((f) => tile('model-fact', f)));
 
     lineChart($('mCurve'), meta.curve ?? [], {
       train: t('train.chartTrain'),
@@ -99,7 +143,7 @@ export class ModelView {
     }
     const confused = base ? (metrics?.confused ?? []).filter((c) => c.share >= 0.2) : this.classifier.confusedPairs();
     $('mConfused').replaceChildren(
-      ...confused.slice(0, 5).map((c) =>
+      ...confused.slice(0, 3).map((c) =>
         Object.assign(document.createElement('li'), {
           textContent: t('warn.confused', { a: labelName(c.a), b: labelName(c.b), pct: pct(c.share) }),
         }),

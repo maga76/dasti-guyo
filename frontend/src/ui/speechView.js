@@ -12,7 +12,7 @@
 
 import { getLang, onLangChange, t } from '../i18n/i18n.js';
 import { Recognition, listen } from '../speech/recognition.js';
-import { VOICES, currentDuration, getVoice, setVoice, speakAndWait, stop as stopVoice } from '../speech/speech.js';
+import { VOICES, currentDuration, getVoice, preloadVoice, setVoice, speakAndWait, stop as stopVoice } from '../speech/speech.js';
 import { bestMatch, specialMistakes, wrongSyllables } from '../speech/pronunciation.js';
 import { getUser } from '../api/api.js';
 import { flushSpeech, saveSpeech } from '../api/speechSync.js';
@@ -23,7 +23,7 @@ const PROGRESS_KEY = 'dasti-guyo:speechProgress';
 const LEVEL_KEY = 'dasti-guyo:speechLevel';
 const MASTERED_OK = 2; // как на сервере: 2 удачные попытки и последняя удачная
 const MAX_CHAT = 8;
-const SLOW = 0.7;
+const SLOW = 0.8;
 const DIALOG_TRIES = 3; // в разговоре: столько попыток на слово, потом — следующее
 const DIALOG_SILENCE = 2; // столько раз подряд ничего не услышал — разговор на паузе
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -81,6 +81,7 @@ export class SpeechView {
         this.data = await res.json();
       } catch {
         this.root.innerHTML = `<p class="note is-error">${esc(t('sp.loadError'))}</p>`;
+        this.tableKey = null;
         return;
       }
       if (!this.data.levels.some((l) => l.id === this.level)) this.level = this.data.levels[0].id;
@@ -88,6 +89,7 @@ export class SpeechView {
       this.say('ai', t(Recognition ? 'sp.hello' : 'sp.noMic'));
     }
     this.paint();
+    this.preload();
   }
 
   // ---------- Данные ----------
@@ -122,6 +124,7 @@ export class SpeechView {
     s.last = score;
     s.lastOk = ok;
     this.progress[key(word.text)] = s;
+    this.progressVersion = (this.progressVersion ?? 0) + 1;
     save(PROGRESS_KEY, this.progress);
   }
 
@@ -152,6 +155,7 @@ export class SpeechView {
     if (act === 'voice') {
       setVoice(btn.dataset.voice);
       this.paint();
+      this.preload();
       return this.play(1);
     }
   }
@@ -179,7 +183,7 @@ export class SpeechView {
       }
       await this.play(1);
       if (!this.dialog) break;
-      const { variants, error } = await this.hear();
+      const { variants, error } = await this.hear(word);
       if (!this.dialog) break;
       if (error) {
         // Нет сети, нет доступа к микрофону — продолжать бессмысленно
@@ -239,8 +243,13 @@ export class SpeechView {
     return true;
   }
 
+  /** Хватит ли уже услышанного: правильно — можно не ждать, пока браузер дослушает тишину. */
+  heardEnough(word, variants) {
+    return bestMatch(word.text, variants).score >= (this.data.pass ?? 0.75);
+  }
+
   /** Послушать человека один раз: {variants: string[], error: i18n-ключ|null}. */
-  hear() {
+  hear(word) {
     return new Promise((resolve) => {
       let variants = [];
       let error = null;
@@ -250,7 +259,7 @@ export class SpeechView {
         alternatives: 5,
         onText: (text, final, alts) => {
           variants = [text, ...alts];
-          if (final) this.session?.stop();
+          if (final || this.heardEnough(word, variants)) this.session?.stop();
         },
         onError: (errorKey, code) => {
           if (code !== 'no-speech' && code !== 'aborted') error = errorKey;
@@ -272,6 +281,16 @@ export class SpeechView {
     this.index = this.firstUnmastered();
     this.resetWord();
     this.paint();
+    this.preload();
+  }
+
+  /** Голос текущего слова, фраз помощника и всего уровня — заранее, в фоне. */
+  preload() {
+    const word = this.word.text;
+    const others = this.words.map((w) => w.text).filter((t) => t !== word);
+    const feedback = Object.values(this.data.feedback ?? {});
+    const tips = Object.values(this.data.tips ?? {}).map((tip) => tip.tg);
+    preloadVoice([word, ...feedback, ...others, ...tips]);
   }
 
   goTo(index) {
@@ -332,7 +351,7 @@ export class SpeechView {
       alternatives: 5,
       onText: (text, final, alts) => {
         heard = [text, ...alts];
-        if (final) this.session?.stop();
+        if (final || this.heardEnough(word, heard)) this.session?.stop();
       },
       onError: (errorKey, code) => {
         if (code !== 'no-speech' && code !== 'aborted') {
@@ -399,9 +418,13 @@ export class SpeechView {
     const bySyllables = this.fails >= 2 && word.syllables.length > 1;
     if (bySyllables) this.say('ai', t('sp.bySyllables', { syllables: word.syllables.join(' — ') }), { kind: 'tip' });
     this.paint();
-    await speakAndWait(this.feedback('again'));
-    if (dialog) for (const tip of tips) if (this.dialog) await speakAndWait(tip.tg);
-    if (dialog && bySyllables && this.dialog) await speakAndWait(this.feedback('syllables'));
+    if (dialog) {
+      // В разговоре — коротко: подсказка по букве (или «ещё раз»), после второй ошибки — «по слогам»
+      if (bySyllables) await speakAndWait(this.feedback('syllables'));
+      else await speakAndWait(tips[0]?.tg ?? this.feedback('again'));
+    } else {
+      await speakAndWait(this.feedback('again'));
+    }
     if (word === this.word && (!dialog || this.dialog)) await this.play(SLOW, bySyllables);
     return false;
   }
@@ -425,7 +448,18 @@ export class SpeechView {
       .join('');
     const percent = r ? Math.round(r.score * 100) : null;
 
-    this.root.innerHTML = `
+    // Каркас один раз; дальше перерисовываются только верх (слово, кнопки, чат) и — если
+    // прогресс изменился — таблица. Иначе на каждый слог при медленном чтении пересобиралась бы вся страница
+    if (!this.root.querySelector('#spTop')) {
+      this.root.innerHTML = '<div id="spTop"></div><div id="spTableBox"></div><p class="hint" id="spHint"></p>';
+    }
+    const tableKey = `${this.level}|${this.index}|${this.progressVersion ?? 0}|${lang}|${Boolean(getUser())}`;
+    if (tableKey !== this.tableKey) {
+      this.tableKey = tableKey;
+      $('spTableBox').innerHTML = this.tableHtml(lang);
+      $('spHint').textContent = t('sp.hint');
+    }
+    $('spTop').innerHTML = `
       <header class="sp-head">
         <div>
           <h1>${esc(t('sp.title'))}</h1>
@@ -507,8 +541,7 @@ export class SpeechView {
         </section>
       </div>
 
-      ${this.tableHtml(lang)}
-      <p class="hint">${esc(t('sp.hint'))}</p>`;
+`;
   }
 
   tableHtml(lang) {

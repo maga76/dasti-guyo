@@ -10,6 +10,7 @@
 //   4) ничего — тогда сайт просто показывает текст.
 
 import { config } from '../config.js';
+import { assetUrls, download, downloadJson } from '../net/download.js';
 
 const base = import.meta.env.BASE_URL;
 const VOICE_KEY = 'dasti-guyo:voice';
@@ -39,17 +40,51 @@ export function setVoice(voice) {
 /** Такой же вид текста, как на сервере (app/services/tts.py → normalize). */
 export const normalize = (text) => text.trim().toLowerCase().replace(/\s+/g, ' ');
 
+// Файлы голоса берутся с быстрого CDN (как модели, net/download.js) и хранятся в браузере:
+// со своего сервера на медленном интернете каждое слово начинало звучать через секунды
 function loadIndex(voice = getVoice()) {
-  indexPromises[voice] ??= fetch(`${base}${VOICE_DIRS[voice]}/index.json`)
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null);
+  indexPromises[voice] ??= downloadJson(assetUrls(`${VOICE_DIRS[voice]}/index.json`)).catch(() => {
+    delete indexPromises[voice]; // попробуем ещё раз при следующем слове
+    return null;
+  });
   return indexPromises[voice];
 }
 
-/** Адрес готового файла для текста в выбранном голосе или null. */
-async function fileUrl(text, voice = getVoice()) {
+/** Путь готового файла (от public/) для текста в выбранном голосе или null. */
+async function filePath(text, voice = getVoice()) {
   const file = (await loadIndex(voice))?.files?.[normalize(text)];
-  return file ? `${base}${VOICE_DIRS[voice]}/${file}` : null;
+  return file ? `${VOICE_DIRS[voice]}/${file}` : null;
+}
+
+const blobUrls = new Map(); // путь файла → Promise<blob-адрес>
+
+/** Файл голоса → адрес для воспроизведения (скачивается один раз). */
+function audioUrl(path) {
+  if (!blobUrls.has(path)) {
+    const type = path.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav';
+    const promise = download(assetUrls(path)).then((buf) => URL.createObjectURL(new Blob([buf], { type })));
+    promise.catch(() => blobUrls.delete(path));
+    blobUrls.set(path, promise);
+  }
+  return blobUrls.get(path);
+}
+
+/** Адрес готового файла для текста или null. */
+async function fileUrl(text, voice = getVoice()) {
+  const path = await filePath(text, voice);
+  if (!path) return null;
+  return audioUrl(path).catch(() => `${base}${path}`);
+}
+
+/**
+ * Заранее скачать голос для текстов (в фоне, по одному) — чтобы потом слова звучали сразу.
+ * @param {string[]} texts
+ */
+export async function preloadVoice(texts) {
+  for (const text of texts) {
+    const path = await filePath(text).catch(() => null);
+    if (path) await audioUrl(path).catch(() => null);
+  }
 }
 
 // Буквы таджикского алфавита, которых нет в русском, → как их прочитает русский голос

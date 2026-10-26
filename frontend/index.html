@@ -351,39 +351,48 @@
       <section class="model-page view" data-view="model" hidden>
         <div class="model-hero">
           <p class="model-hero-number" id="mAccuracy">—</p>
-          <div>
+          <div class="model-hero-main">
             <p class="model-hero-text" id="mAccuracyText"></p>
             <p class="hint" id="mSource"></p>
+            <div class="model-facts" id="mFacts"></div>
           </div>
         </div>
 
-        <h2 data-i18n="model.howTitle"></h2>
-        <ol class="pipeline">
-          <li><b data-i18n="model.p1.title"></b><span data-i18n="model.p1.text"></span></li>
-          <li><b data-i18n="model.p2.title"></b><span data-i18n="model.p2.text"></span></li>
-          <li><b data-i18n="model.p3.title"></b><span data-i18n="model.p3.text"></span></li>
-          <li class="is-ours"><b data-i18n="model.p4.title"></b><span id="mArch"></span></li>
-          <li><b data-i18n="model.p5.title"></b><span data-i18n="model.p5.text"></span></li>
-        </ol>
+        <section>
+          <h2 data-i18n="model.howTitle"></h2>
+          <ol class="pipeline">
+            <li><i aria-hidden="true">1</i><b data-i18n="model.p1.title"></b><span data-i18n="model.p1.text"></span></li>
+            <li><i aria-hidden="true">2</i><b data-i18n="model.p2.title"></b><span data-i18n="model.p2.text"></span></li>
+            <li><i aria-hidden="true">3</i><b data-i18n="model.p3.title"></b><span data-i18n="model.p3.text"></span></li>
+            <li class="is-ours"><i aria-hidden="true">4</i><b data-i18n="model.p4.title"></b><span id="mArch"></span></li>
+            <li><i aria-hidden="true">5</i><b data-i18n="model.p5.title"></b><span data-i18n="model.p5.text"></span></li>
+          </ol>
+        </section>
+
+        <section class="model-card">
+          <h2 data-i18n="model.guardTitle"></h2>
+          <p class="hint" data-i18n="model.guardHint"></p>
+          <div class="guards" id="mGuards"></div>
+        </section>
 
         <div class="model-grid">
-          <section>
+          <section class="model-card">
             <h2 data-i18n="model.curveTitle"></h2>
             <p class="hint" data-i18n="model.curveHint"></p>
             <div id="mCurve"></div>
           </section>
-          <section>
-            <h2 data-i18n="model.perClassTitle"></h2>
-            <p class="hint" data-i18n="model.perClassHint"></p>
-            <div id="mPerClass"></div>
+          <section class="model-card">
+            <h2 data-i18n="model.dataTitle"></h2>
+            <p id="mData"></p>
+            <ul class="warnings" id="mConfused"></ul>
+            <p class="hint" data-i18n="tr.sourceNote"></p>
           </section>
         </div>
 
-        <section>
-          <h2 data-i18n="model.dataTitle"></h2>
-          <p id="mData"></p>
-          <ul class="warnings" id="mConfused"></ul>
-          <p class="hint" data-i18n="tr.sourceNote"></p>
+        <section class="model-card">
+          <h2 data-i18n="model.perClassTitle"></h2>
+          <p class="hint" data-i18n="model.perClassHint"></p>
+          <div id="mPerClass" class="per-class"></div>
         </section>
       </section>
 

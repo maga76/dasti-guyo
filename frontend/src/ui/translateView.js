@@ -22,11 +22,11 @@ const AUTO_SPEAK_KEY = 'dasti-guyo:autoSpeak';
 // v2: у модели с классом «не наш жест» лучший порог — 0.6 (см. backend/tools/build_slovo_base.py,
 // ACCEPT); новый ключ, чтобы прежний сохранённый 0.8 не мешал
 const THRESHOLD_KEY = 'dasti-guyo:threshold-v2';
-const DEFAULT_THRESHOLD = '0.6';
+export const DEFAULT_THRESHOLD = '0.6';
 // Слово засчитывается, только если модель уверенно назвала его в 3 из 4 последних ответов
 // (~0.6 с): случайный ошибочный ответ в одном окне не превращается в слово
-const HISTORY = 4;
-const MIN_AGREE = 3;
+export const HISTORY = 4;
+export const MIN_AGREE = 3;
 const MIN_GAP_MS = 800;
 
 function readSetting(key, fallback) {

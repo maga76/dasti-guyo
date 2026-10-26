@@ -283,7 +283,21 @@ setInterval(renderStats, 250);
 
 applyI18n();
 updateLangButtons();
+// Экраны, где нужна камера. На остальных распознавание рук на паузе (сама камера не выключается,
+// чтобы не спрашивать разрешение снова): иначе нейросети рук и позы 30 раз в секунду работали бы
+// в фоне — и «Талаффуз», 3D-аватар, профиль заметно тормозили бы.
+const CAMERA_ROUTES = new Set(['translate', 'train', 'practice']);
+
 initRouter((route) => {
+  if (state.camera === 'on') {
+    if (CAMERA_ROUTES.has(route)) {
+      if (!loop.running) recognizer.reset(); // кадры до паузы не должны попасть в новый жест
+      loop.start();
+    } else {
+      loop.stop();
+      clearCanvas(ctx);
+    }
+  }
   trainView.setActive(route === 'train');
   translateView.setActive(route === 'translate');
   modelView.setActive(route === 'model');
