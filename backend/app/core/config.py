@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     register_rate_limit: int = 5
     register_rate_window: int = 3600
 
+    # Вход через Google: «Client ID» из Google Cloud Console (тип «Веб-приложение»).
+    # Пусто — кнопки «Продолжить с Google» на сайте нет
+    google_client_id: str = ""
+
     # Первый администратор (используется скриптом create_admin)
     first_admin_username: str = "admin"
     first_admin_password: str | None = None

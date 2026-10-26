@@ -1,4 +1,4 @@
-// Связь с бэкендом: регистрация, вход по логину и паролю, запросы с токеном, понятные ошибки.
+// Связь с бэкендом: регистрация, вход по логину и паролю или через Google, запросы с токеном, понятные ошибки.
 // Токен хранится в localStorage — человек остаётся в своём профиле, пока токен не устареет
 // (12 часов) или пока не нажмёт «Выйти».
 
@@ -156,6 +156,29 @@ export async function register(username, password) {
       await sleep(1500 * (attempt + 1));
     }
   }
+}
+
+/** Вход через Google: «пропуск» от кнопки Google → наш токен (аккаунт создаётся сам). */
+export async function loginWithGoogle(credential) {
+  const data = await api('/auth/google', {
+    method: 'POST',
+    body: { credential },
+    timeout: AUTH_TIMEOUT,
+    retries: AUTH_RETRIES,
+  });
+  setSession(data.access_token, data.user);
+  return data.user;
+}
+
+let authOptions = null;
+
+/** Какие способы входа включены на сервере ({google_client_id, allow_registration}). */
+export function getAuthOptions() {
+  authOptions ??= api('/auth/options', { timeout: 15_000, retries: 1 }).catch(() => {
+    authOptions = null; // сервер недоступен — спросим ещё раз в следующий раз
+    return { google_client_id: null, allow_registration: true };
+  });
+  return authOptions;
 }
 
 export function logout() {

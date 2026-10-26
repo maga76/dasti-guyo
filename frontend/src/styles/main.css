@@ -3918,3 +3918,44 @@ body[data-route='speech'] .layout {
     padding: 16px;
   }
 }
+
+/* ---------- Вход через Google ---------- */
+
+.pf-google {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pf-google[hidden] {
+  display: none;
+}
+
+#pfGoogle {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.pf-google .muted {
+  margin: 0;
+  text-align: center;
+}
+
+/* «или» между кнопкой Google и формой с паролем */
+.pf-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.pf-or::before,
+.pf-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}

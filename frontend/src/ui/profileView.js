@@ -5,7 +5,7 @@
 //   - баллы и уровень, таблица лучших.
 
 import { getLang, onLangChange, t } from '../i18n/i18n.js';
-import { ApiError, api, getUser, login, logout, onAuthChange, register } from '../api/api.js';
+import { ApiError, api, getUser, login, loginWithGoogle, logout, onAuthChange, register } from '../api/api.js';
 import { syncSamples } from '../api/sync.js';
 import { flushPractice } from '../api/practiceSync.js';
 import { flushSpeech } from '../api/speechSync.js';
@@ -14,6 +14,7 @@ import { loadBaseDataset } from '../dataset/baseDataset.js';
 import { NONE_LABEL } from '../dataset/dataset.js';
 import { labelName } from './trainView.js';
 import { passwordField } from './passwordField.js';
+import { renderGoogleButton } from './googleButton.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -123,6 +124,34 @@ export class ProfileView {
     }
   }
 
+  /** «Продолжить с Google»: Google дал пропуск — входим (аккаунт создаётся сам). */
+  async onGoogle(credential) {
+    this.message = null;
+    this.googleBusy = true;
+    this.paint();
+    try {
+      await loginWithGoogle(credential);
+    } catch (err) {
+      this.message = err instanceof ApiError ? err.message : String(err);
+    }
+    this.googleBusy = false;
+    this.paint();
+  }
+
+  /** Показать кнопку Google в форме входа (если вход через Google включён на сервере). */
+  async showGoogle() {
+    const box = $('pfGoogleBox');
+    if (!box) return;
+    await renderGoogleButton($('pfGoogle'), {
+      lang: getLang(),
+      dark: matchMedia('(prefers-color-scheme: dark)').matches,
+      onCredential: (credential) => this.onGoogle(credential),
+      beforeShow: () => {
+        box.hidden = false;
+      },
+    });
+  }
+
   fail(text) {
     this.message = text;
     this.paint();
@@ -151,7 +180,10 @@ export class ProfileView {
   paint() {
     if (!this.active) return;
     const user = getUser();
-    if (!user) this.root.innerHTML = this.authHtml();
+    if (!user) {
+      this.root.innerHTML = this.authHtml();
+      this.showGoogle();
+    }
     else if (this.loading && !this.data) this.root.innerHTML = `<p class="pf-loading">${esc(t('pf.loading'))}</p>`;
     else if (this.error && !this.data) this.root.innerHTML = `<p class="note is-error">${esc(this.error)}</p>`;
     else this.root.innerHTML = this.dashboardHtml();
@@ -176,6 +208,11 @@ export class ProfileView {
           <div class="pf-switch" role="tablist">
             <button type="button" role="tab" data-act="mode" data-mode="register" aria-selected="${reg}">${esc(t('pf.register'))}</button>
             <button type="button" role="tab" data-act="mode" data-mode="login" aria-selected="${!reg}">${esc(t('pf.login'))}</button>
+          </div>
+          <div class="pf-google" id="pfGoogleBox" hidden>
+            <div id="pfGoogle"></div>
+            ${this.googleBusy ? `<p class="muted">${esc(t('pf.googleBusy'))}</p>` : ''}
+            <p class="pf-or"><span>${esc(t('pf.or'))}</span></p>
           </div>
           <label class="field">${esc(t('ad.username'))}
             <input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="50" required />

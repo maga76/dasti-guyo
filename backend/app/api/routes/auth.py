@@ -1,8 +1,9 @@
+import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from app.api.deps import DB, CurrentUser
 from app.core.config import get_settings
@@ -10,7 +11,8 @@ from app.core.errors import AppError
 from app.core.limits import RateLimiter
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models import Role, User
-from app.schemas.users import RegisterIn, Token, UserOut
+from app.schemas.users import AuthOptions, GoogleIn, RegisterIn, Token, UserOut
+from app.services import google_auth
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -45,6 +47,52 @@ def login(request: Request, db: DB, form: Annotated[OAuth2PasswordRequestForm, D
     user = db.scalar(select(User).where(User.username == form.username))
     if not user or not verify_password(form.password, user.password_hash):
         raise AppError(401, "bad_credentials")
+    return Token(access_token=create_access_token(user.id, user.role), user=UserOut.model_validate(user))
+
+
+@router.get("/options", response_model=AuthOptions, summary="Какие способы входа включены")
+def options():
+    settings = get_settings()
+    return AuthOptions(google_client_id=settings.google_client_id or None, allow_registration=settings.allow_registration)
+
+
+def _free_username(db, base: str) -> str:
+    """«Муҳаммад», а если занято — «Муҳаммад2», «Муҳаммад3»…"""
+    name, n = base, 1
+    while db.scalar(
+        select(User.id).where(or_(User.username == name, func.lower(User.username) == name.lower()))
+    ):
+        n += 1
+        name = f"{base}{n}"
+    return name
+
+
+@router.post("/google", response_model=Token, summary="Вход или регистрация через Google")
+def google(request: Request, data: GoogleIn, db: DB):
+    """Кнопка Google на сайте даёт «пропуск» (ID token). Проверяем его; если такого человека
+    ещё нет — создаём аккаунт волонтёра (как при обычной регистрации)."""
+    settings = get_settings()
+    if not settings.google_client_id:
+        raise AppError(404, "google_disabled")
+    login_limiter.hit(request.client.host if request.client else "unknown")
+    account = google_auth.verify(data.credential, settings.google_client_id)
+
+    user = db.scalar(select(User).where(User.google_id == account["sub"]))
+    if not user:
+        if not settings.allow_registration:
+            raise AppError(403, "registration_closed")
+        register_limiter.hit(request.client.host if request.client else "unknown")
+        user = User(
+            username=_free_username(db, google_auth.username_base(account["name"])),
+            # Пароля у такого аккаунта нет: случайный, никому не известный
+            password_hash=hash_password(secrets.token_urlsafe(32)),
+            role=Role.contributor,
+            google_id=account["sub"],
+            email=account["email"],
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     return Token(access_token=create_access_token(user.id, user.role), user=UserOut.model_validate(user))
 
 
