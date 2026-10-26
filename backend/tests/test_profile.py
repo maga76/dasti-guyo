@@ -161,3 +161,17 @@ def test_leaderboard_shows_only_names(client, gesture, admin):
     data = client.get(f"{API}/leaderboard").json()
     assert data["players"] == [{"username": "zarina", "value": 60}, {"username": "ali", "value": 40}]
     assert data["contributors"] == [{"username": "ali", "value": 1}]
+
+
+def test_delete_my_account(client, contributor, gesture):
+    body = {"gesture_id": gesture["id"], "landmarks": make_frames(), "hand_count": 1}
+    assert client.post(f"{API}/samples", json=body, headers=contributor).status_code == 201
+    assert client.delete(f"{API}/me", headers=contributor).status_code == 204
+    # Токен больше не работает, логин свободен, неодобренная запись удалена
+    assert client.get(f"{API}/me/profile", headers=contributor).status_code == 401
+    with SessionLocal() as db:
+        assert db.query(Sample).count() == 0
+
+
+def test_admin_cannot_delete_self_via_me(client, admin):
+    assert client.delete(f"{API}/me", headers=admin).status_code == 400

@@ -1,9 +1,10 @@
 """Личный кабинет: профиль, результаты тренажёров (жесты, произношение), таблица лучших."""
 
 from fastapi import APIRouter, status
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from app.api.deps import DB, CurrentUser
+from app.core.errors import AppError
 from app.models import PracticeResult, Sample, SpeechResult, User
 from app.schemas.profile import LeaderboardOut, LeaderRow, PracticeIn, PracticeOut, ProfileOut, SpeechIn, SpeechOut
 from app.services.profile import SPEECH_PASS, profile
@@ -16,6 +17,19 @@ LEADERBOARD_SIZE = 10
 @router.get("/me/profile", response_model=ProfileOut, summary="Мой вклад в ИИ и моё знание жестов")
 def my_profile(db: DB, user: CurrentUser):
     return profile(db, user)
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, summary="Удалить свой аккаунт")
+def delete_me(db: DB, user: CurrentUser):
+    """Удаляет аккаунт, результаты тренажёров и ещё не одобренные записи жестов.
+    Одобренные записи (только точки рук, без видео) остаются без имени: на них уже учится ИИ."""
+    if user.role == "admin":
+        raise AppError(400, "cannot_delete_self")  # администратора удаляет другой администратор
+    db.execute(delete(Sample).where(Sample.user_id == user.id, Sample.is_approved.is_(False)))
+    db.execute(delete(PracticeResult).where(PracticeResult.user_id == user.id))
+    db.execute(delete(SpeechResult).where(SpeechResult.user_id == user.id))
+    db.delete(user)
+    db.commit()
 
 
 @router.post(

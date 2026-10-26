@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="tg">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Махфият — Дасти Гӯё</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      :root {
+        --bg: #eef1f5;
+        --surface: #ffffff;
+        --text: #16213a;
+        --muted: #5a6478;
+        --line: #d9dee7;
+        --gold: #e8a317;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1626;
+          --surface: #182339;
+          --text: #eef1f5;
+          --muted: #a3adc2;
+          --line: #2a3654;
+          --gold: #f2b233;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 system-ui, 'Segoe UI', Roboto, sans-serif;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      header a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text);
+        font-weight: 700;
+        font-size: 1.2rem;
+        text-decoration: none;
+      }
+      nav button {
+        padding: 6px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      nav button[aria-pressed='true'] {
+        background: var(--surface);
+        color: var(--text);
+        box-shadow: inset 0 0 0 1px var(--line);
+      }
+      article {
+        padding: 24px;
+        border-radius: 20px;
+        background: var(--surface);
+        box-shadow: inset 0 0 0 1px var(--line);
+      }
+      article[hidden] {
+        display: none;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 1.6rem;
+      }
+      h2 {
+        margin: 24px 0 6px;
+        font-size: 1.1rem;
+      }
+      p,
+      li {
+        color: var(--muted);
+      }
+      .date {
+        margin: 0 0 8px;
+        font-size: 0.9rem;
+      }
+      ul {
+        padding-left: 20px;
+      }
+      a {
+        color: var(--gold);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <a href="/"><img src="/favicon.svg" alt="" width="32" height="32" />Дасти Гӯё</a>
+        <nav>
+          <button type="button" data-lang="tg" aria-pressed="true">Тоҷ</button>
+          <button type="button" data-lang="ru" aria-pressed="false">Рус</button>
+        </nav>
+      </header>
+
+      <article lang="tg" data-lang-block="tg">
+        <h1>Сиёсати махфият</h1>
+        <p class="date">Санаи навсозӣ: 26 октябри 2026</p>
+        <p>
+          «Дасти Гӯё» — лоиҳаи ройгони мактабӣ, ки забони имои тоҷикиро ба матн ва овоз тарҷума мекунад.
+          Реклама нест ва маълумоти шумо фурӯхта намешавад.
+        </p>
+
+        <h2>Видео</h2>
+        <p>
+          Видеои камера дар дастгоҳи шумо мемонад ва ба сервер фиристода намешавад. Сайт аз видео танҳо 21 нуқтаи
+          ҳар дастро ҳисоб мекунад.
+        </p>
+
+        <h2>Чӣ нигоҳ медорем</h2>
+        <ul>
+          <li>Номи корбар ва рамз (рамз рамзгузорӣ шуда нигоҳ дошта мешавад).</li>
+          <li>
+            Агар бо Google ворид шавед: рақами ҳисоби Google, почтаи электронӣ ва номи шумо. Почта ба дигарон
+            нишон дода намешавад; дар ҷадвали беҳтаринҳо танҳо ном намоён аст.
+          </li>
+          <li>Сабтҳои имо, ки худатон мефиристед — танҳо рақамҳои нуқтаҳои даст, на видео.</li>
+          <li>Натиҷаҳои машқ ва талаффуз: хол, калима ва он чизе, ки сайт шунид (матн, на овоз).</li>
+        </ul>
+
+        <h2>Барои чӣ</h2>
+        <p>
+          Барои он ки шумо ворид шуда, пешрафти худро бинед, ва барои омӯзонидани нейрошабакаи мо. Маълумот ба
+          ширкатҳои дигар дода намешавад.
+        </p>
+
+        <h2>Google</h2>
+        <p>
+          Ҳангоми воридшавӣ бо Google мо танҳо ном, почта ва рақами ҳисобро мегирем. Мо ба почта, файлҳо ё дигар
+          маълумоти Google-и шумо дастрасӣ надорем.
+        </p>
+
+        <h2>Нест кардан</h2>
+        <p>
+          Дар «Профил» тугмаи «Нест кардани ҳисоб» ҳаст. Он ҳисоб, холҳо, натиҷаҳо ва сабтҳои ҳанӯз тасдиқнашударо
+          нест мекунад. Сабтҳое, ки аллакай барои омӯзиши ИИ тасдиқ шудаанд, бе ном мемонанд.
+        </p>
+
+        <h2>Овоз</h2>
+        <p>
+          Барои тренажёри «Талаффуз» браузер овози шуморо ба матн табдил медиҳад (хидмати браузер). Сайт сабти
+          овозро нигоҳ намедорад.
+        </p>
+      </article>
+
+      <article lang="ru" data-lang-block="ru" hidden>
+        <h1>Политика конфиденциальности</h1>
+        <p class="date">Обновлено: 26 октября 2026</p>
+        <p>
+          «Дасти Гӯё» — бесплатный школьный проект, который переводит таджикский жестовый язык в текст и голос.
+          Рекламы нет, ваши данные не продаются.
+        </p>
+
+        <h2>Видео</h2>
+        <p>
+          Видео с камеры остаётся на вашем устройстве и на сервер не отправляется. Сайт берёт из видео только
+          21 точку на каждой руке.
+        </p>
+
+        <h2>Что мы храним</h2>
+        <ul>
+          <li>Имя пользователя и пароль (пароль хранится в зашифрованном виде).</li>
+          <li>
+            Если вы входите через Google: номер аккаунта Google, почту и имя. Почту другие люди не видят, в таблице
+            лучших показано только имя.
+          </li>
+          <li>Записи жестов, которые вы сами отправили, — только числа точек рук, без видео.</li>
+          <li>Результаты тренажёров: баллы, слово и то, что сайт услышал (текст, не запись голоса).</li>
+        </ul>
+
+        <h2>Зачем</h2>
+        <p>
+          Чтобы вы могли войти и видеть свой прогресс, и чтобы обучать нашу нейросеть. Данные не передаются другим
+          компаниям.
+        </p>
+
+        <h2>Google</h2>
+        <p>
+          При входе через Google мы получаем только имя, почту и номер аккаунта. Доступа к вашей почте, файлам и
+          другим данным Google у нас нет.
+        </p>
+
+        <h2>Удаление</h2>
+        <p>
+          В «Профиле» есть кнопка «Удалить аккаунт». Она удаляет аккаунт, баллы, результаты и ещё не одобренные
+          записи. Записи, уже одобренные для обучения ИИ, остаются без имени.
+        </p>
+
+        <h2>Голос</h2>
+        <p>
+          В тренажёре «Талаффуз» вашу речь в текст превращает сам браузер (его встроенная служба). Сайт записи
+          голоса не хранит.
+        </p>
+      </article>
+    </main>
+    <script>
+      (function () {
+        var buttons = document.querySelectorAll('[data-lang]');
+        function show(lang) {
+          document.querySelectorAll('[data-lang-block]').forEach(function (el) {
+            el.hidden = el.dataset.langBlock !== lang;
+          });
+          buttons.forEach(function (b) {
+            b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+          });
+          document.documentElement.lang = lang;
+        }
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function () {
+            show(b.dataset.lang);
+          });
+        });
+        var saved = null;
+        try {
+          saved = localStorage.getItem('dasti-guyo:lang');
+        } catch (e) {}
+        show(saved === 'ru' ? 'ru' : 'tg');
+      })();
+    </script>
+  </body>
+</html>

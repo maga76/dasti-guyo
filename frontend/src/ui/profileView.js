@@ -5,7 +5,7 @@
 //   - баллы и уровень, таблица лучших.
 
 import { getLang, onLangChange, t } from '../i18n/i18n.js';
-import { ApiError, api, getUser, login, loginWithGoogle, logout, onAuthChange, register } from '../api/api.js';
+import { ApiError, api, deleteAccount, getUser, login, loginWithGoogle, logout, onAuthChange, register } from '../api/api.js';
 import { syncSamples } from '../api/sync.js';
 import { flushPractice } from '../api/practiceSync.js';
 import { flushSpeech } from '../api/speechSync.js';
@@ -168,6 +168,15 @@ export class ProfileView {
       this.paint();
     } else if (act === 'logout') {
       logout();
+    } else if (act === 'delete') {
+      if (!window.confirm(t('pf.deleteConfirm'))) return;
+      btn.disabled = true;
+      try {
+        await deleteAccount();
+      } catch (err) {
+        btn.disabled = false;
+        window.alert(err instanceof ApiError ? err.message : String(err));
+      }
     } else if (act === 'sync') {
       btn.disabled = true;
       await syncSamples();
@@ -253,7 +262,11 @@ export class ProfileView {
       </div>
       ${p.speech ? this.speechHtml(p.speech) : ''}
       ${board ? this.boardHtml(board, user.username) : ''}
-      <p class="muted pf-rules">${esc(t('pf.rules'))}</p>`;
+      <p class="muted pf-rules">${esc(t('pf.rules'))}</p>
+      <p class="pf-danger">
+        <a href="/privacy.html" target="_blank" rel="noopener">${esc(t('app.privacy'))}</a>
+        <button type="button" class="btn btn-danger btn-small" data-act="delete">${esc(t('pf.deleteAccount'))}</button>
+      </p>`;
   }
 
   contributionHtml(c, unsynced) {

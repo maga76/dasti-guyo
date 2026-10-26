@@ -10,7 +10,8 @@ import { fileURLToPath } from 'node:url';
 function assetRef() {
   try {
     const cwd = fileURLToPath(new URL('.', import.meta.url));
-    return execSync('git log -1 --format=%H -- public', { cwd, encoding: 'utf8' }).trim();
+    // privacy.html — простая страница, её правки не должны менять адрес тяжёлых файлов на CDN
+    return execSync('git log -1 --format=%H -- public ":(exclude)public/privacy.html"', { cwd, encoding: 'utf8' }).trim();
   } catch {
     return '';
   }

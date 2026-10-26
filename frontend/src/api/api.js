@@ -181,6 +181,12 @@ export function getAuthOptions() {
   return authOptions;
 }
 
+/** Удалить свой аккаунт (результаты и неодобренные записи) и выйти. */
+export async function deleteAccount() {
+  await api('/me', { method: 'DELETE', timeout: AUTH_TIMEOUT });
+  setSession(null, null);
+}
+
 export function logout() {
   setSession(null, null);
 }
