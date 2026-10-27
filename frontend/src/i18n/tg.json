@@ -458,5 +458,12 @@
   "sp.moveOn": "Ҳеҷ гап не. Ба калимаи дигар мегузарем.",
   "sp.voice": "Овоз",
   "sp.voice.madina": "Мадина (занона)",
-  "sp.voice.mms": "Мардона"
+  "sp.voice.mms": "Мардона",
+  "sp.teacher.madina": "Мадина",
+  "sp.teacher.mms": "Муаллим",
+  "sp.teacherRole": "муаллими талаффуз",
+  "sp.state.idle": "Микрофонро пахш кунед ва калимаро такрор кунед",
+  "sp.state.speak": "Мегӯям…",
+  "sp.state.dialog": "Сӯҳбат идома дорад",
+  "sp.statMasteredShort": "омӯхта шуд"
 }

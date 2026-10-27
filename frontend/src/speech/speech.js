@@ -239,6 +239,11 @@ export async function speakAndWait(text, opts) {
   return source;
 }
 
+/** Звучит ли сейчас голос (запись или голос браузера) — для живого лица учителя. */
+export function isSpeaking() {
+  return Boolean((current && !current.paused && !current.ended) || window.speechSynthesis?.speaking);
+}
+
 /** Длительность текущей записи в секундах (с учётом скорости) или null. */
 export function currentDuration() {
   const audio = current;

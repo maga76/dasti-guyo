@@ -458,5 +458,12 @@
   "sp.moveOn": "Ничего страшного. Переходим к другому слову.",
   "sp.voice": "Голос",
   "sp.voice.madina": "Мадина (женский)",
-  "sp.voice.mms": "Мужской"
+  "sp.voice.mms": "Мужской",
+  "sp.teacher.madina": "Мадина",
+  "sp.teacher.mms": "Учитель",
+  "sp.teacherRole": "учитель произношения",
+  "sp.state.idle": "Нажмите на микрофон и повторите слово",
+  "sp.state.speak": "Говорю…",
+  "sp.state.dialog": "Разговор идёт",
+  "sp.statMasteredShort": "освоено"
 }

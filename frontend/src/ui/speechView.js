@@ -12,7 +12,16 @@
 
 import { getLang, onLangChange, t } from '../i18n/i18n.js';
 import { Recognition, listen } from '../speech/recognition.js';
-import { VOICES, currentDuration, getVoice, preloadVoice, setVoice, speakAndWait, stop as stopVoice } from '../speech/speech.js';
+import {
+  VOICES,
+  currentDuration,
+  getVoice,
+  isSpeaking,
+  preloadVoice,
+  setVoice,
+  speakAndWait,
+  stop as stopVoice,
+} from '../speech/speech.js';
 import { bestMatch, specialMistakes, wrongSyllables } from '../speech/pronunciation.js';
 import { getUser } from '../api/api.js';
 import { flushSpeech, saveSpeech } from '../api/speechSync.js';
@@ -29,6 +38,32 @@ const DIALOG_SILENCE = 2; // столько раз подряд ничего н�
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const key = (word) => word.trim().toLowerCase();
+
+// Лицо учителя: говорит — двигается рот, слушает — вокруг расходятся волны (стили — main.css, .sp-teacher)
+const TEACHER_SVG = `<svg viewBox="0 0 120 120" aria-hidden="true">
+  <defs>
+    <radialGradient id="spFace" cx="38%" cy="32%" r="75%">
+      <stop offset="0" stop-color="#ffe2a3"/><stop offset="0.55" stop-color="#f4b73b"/><stop offset="1" stop-color="#d98e0b"/>
+    </radialGradient>
+  </defs>
+  <circle class="t-face" cx="60" cy="60" r="46" fill="url(#spFace)"/>
+  <ellipse class="t-shine" cx="42" cy="34" rx="11" ry="6" transform="rotate(-25 42 34)"/>
+  <g class="t-eyes"><ellipse cx="45" cy="56" rx="5.5" ry="7"/><ellipse cx="75" cy="56" rx="5.5" ry="7"/></g>
+  <circle class="t-cheek" cx="35" cy="72" r="6"/><circle class="t-cheek" cx="85" cy="72" r="6"/>
+  <path class="t-smile" d="M48 75q12 10 24 0"/>
+  <ellipse class="t-mouth" cx="60" cy="78" rx="9" ry="7"/>
+</svg>`;
+
+const ICONS = {
+  listen: '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12"/>',
+  slow: '<circle cx="12" cy="13" r="8"/><path d="M12 13l3-3M12 3v2"/>',
+  mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/>',
+  stop: '<rect x="7" y="7" width="10" height="10" rx="2"/>',
+  chat: '<path d="M4 5h16v10H9l-5 4V5z"/><path d="M8 9h8M8 12h5"/>',
+  prev: '<path d="M15 5l-7 7 7 7"/>',
+  next: '<path d="M9 5l7 7-7 7"/>',
+};
+const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
 function load(storageKey, fallback) {
   try {
@@ -69,6 +104,7 @@ export class SpeechView {
 
   async setActive(active) {
     this.active = active;
+    clearInterval(this.teacherTimer);
     if (!active) {
       this.dialog = false;
       this.session?.stop();
@@ -90,6 +126,8 @@ export class SpeechView {
     }
     this.paint();
     this.preload();
+    // Лицо учителя следит за голосом и микрофоном само, без перерисовки страницы
+    this.teacherTimer = setInterval(() => this.paintTeacher(), 150);
   }
 
   // ---------- Данные ----------
@@ -431,13 +469,120 @@ export class SpeechView {
 
   // ---------- Отрисовка ----------
 
+  /** Что делает учитель: 'listen' | 'speak' | 'idle'. */
+  teacherState() {
+    if (this.session) return 'listen';
+    if (isSpeaking()) return 'speak';
+    return 'idle';
+  }
+
+  /** Лицо и строка «что происходит» — меняются только класс и текст, анимации не сбиваются. */
+  paintTeacher() {
+    const el = $('spTeacher');
+    if (!el) return;
+    const state = this.teacherState();
+    const textKey =
+      state === 'listen' ? 'sp.listening' : state === 'speak' ? 'sp.state.speak' : this.dialog ? 'sp.state.dialog' : 'sp.state.idle';
+    const mark = `${state}|${textKey}|${getLang()}`;
+    if (el.dataset.mark === mark) return;
+    el.dataset.mark = mark;
+    el.className = `sp-teacher is-${state}`;
+    $('spState').textContent = t(textKey);
+  }
+
   paint() {
     if (!this.active || !this.data) return;
     const lang = getLang() === 'ru' ? 'ru' : 'tg';
+
+    // Каркас один раз; дальше перерисовываются только части. Лицо учителя — постоянное,
+    // иначе его анимация начиналась бы заново на каждый слог при медленном чтении
+    if (!this.root.querySelector('#spCard')) {
+      this.root.innerHTML = `
+        <div id="spHead"></div>
+        <div class="sp-stage">
+          <aside class="sp-teacher-col" aria-label="${esc(t('sp.assistant'))}">
+            <div class="sp-teacher-top">
+              <div class="sp-teacher is-idle" id="spTeacher">${TEACHER_SVG}</div>
+              <div class="sp-teacher-info">
+                <b id="spTeacherName"></b>
+                <small id="spTeacherRole"></small>
+                <span class="sp-state" id="spState"></span>
+              </div>
+            </div>
+            <div id="spDialogBox"></div>
+            <ol class="sp-messages" id="spChat" aria-live="polite"></ol>
+          </aside>
+          <section class="sp-card" id="spCard"></section>
+        </div>
+        <div id="spTableBox"></div>
+        <p class="hint" id="spHint"></p>`;
+      this.tableKey = null;
+    }
+    const tableKey = `${this.level}|${this.index}|${this.progressVersion ?? 0}|${lang}|${Boolean(getUser())}`;
+    if (tableKey !== this.tableKey) {
+      this.tableKey = tableKey;
+      $('spTableBox').innerHTML = this.tableHtml(lang);
+      $('spHint').textContent = t('sp.hint');
+    }
+    $('spHead').innerHTML = this.headHtml(lang);
+    $('spCard').innerHTML = this.cardHtml();
+    $('spTeacherName').textContent = t(`sp.teacher.${getVoice()}`);
+    $('spTeacherRole').textContent = t('sp.teacherRole');
+    $('spDialogBox').innerHTML = `
+      <button type="button" class="sp-dialog${this.dialog ? ' is-on' : ''}" data-act="dialog">
+        ${icon(this.dialog ? 'stop' : 'chat')}
+        <span>${esc(t(this.dialog ? 'sp.dialogStopBtn' : 'sp.dialogBtn'))}</span>
+      </button>`;
+    this.paintChat();
+    this.paintTeacher();
+  }
+
+  paintChat() {
+    const list = $('spChat');
+    const html = this.chat
+      .map((m) => `<li class="sp-msg is-${m.who}${m.kind ? ` is-${m.kind}` : ''}">${esc(m.text)}</li>`)
+      .join('');
+    if (list.dataset.html === html) return;
+    list.dataset.html = html;
+    list.innerHTML = html;
+    list.scrollTop = list.scrollHeight; // новое сообщение всегда видно
+  }
+
+  headHtml(lang) {
+    return `
+      <header class="sp-head">
+        <div class="sp-title">
+          <h1>${esc(t('sp.title'))}</h1>
+          <p class="muted">${esc(t('sp.intro'))}</p>
+        </div>
+        <div class="sp-voice" role="group" aria-label="${esc(t('sp.voice'))}">
+          ${VOICES.map(
+            (v) =>
+              `<button type="button" data-act="voice" data-voice="${v}" aria-pressed="${getVoice() === v}" ${this.dialog || this.busy ? 'disabled' : ''}>${esc(t(`sp.voice.${v}`))}</button>`,
+          ).join('')}
+        </div>
+      </header>
+      <nav class="sp-levels" aria-label="${esc(t('sp.levels'))}">
+        ${this.data.levels
+          .map((l) => {
+            const list = this.data.words.filter((w) => w.level === l.id);
+            const done = list.filter((w) => this.mastered(w)).length;
+            return `<button type="button" data-act="level" data-level="${l.id}" aria-pressed="${l.id === this.level}">
+              <span>${esc(l[lang])}</span>
+              <small>${done}/${list.length}</small>
+              <i style="width:${Math.round((done / Math.max(1, list.length)) * 100)}%"></i>
+            </button>`;
+          })
+          .join('')}
+      </nav>`;
+  }
+
+  cardHtml() {
     const word = this.word;
     const words = this.words;
     const r = this.result;
     const listening = Boolean(this.session);
+    const locked = this.busy || listening || this.dialog;
 
     const letters = [...word.text]
       .map((ch, i) => `<span class="${r ? (r.wrong.has(i) ? 'is-bad' : /\p{L}/u.test(ch) ? 'is-ok' : '') : ''}">${esc(ch)}</span>`)
@@ -447,101 +592,39 @@ export class SpeechView {
       .map((s, i) => `<span class="sp-syl${badSyl[i] ? ' is-bad' : ''}${i === this.activeSyllable ? ' is-active' : ''}">${esc(s)}</span>`)
       .join('');
     const percent = r ? Math.round(r.score * 100) : null;
+    const resultText = r ? t(r.ok ? (percent >= 90 ? 'sp.great' : 'sp.good') : 'sp.again', { score: percent }) : '';
 
-    // Каркас один раз; дальше перерисовываются только верх (слово, кнопки, чат) и — если
-    // прогресс изменился — таблица. Иначе на каждый слог при медленном чтении пересобиралась бы вся страница
-    if (!this.root.querySelector('#spTop')) {
-      this.root.innerHTML = '<div id="spTop"></div><div id="spTableBox"></div><p class="hint" id="spHint"></p>';
-    }
-    const tableKey = `${this.level}|${this.index}|${this.progressVersion ?? 0}|${lang}|${Boolean(getUser())}`;
-    if (tableKey !== this.tableKey) {
-      this.tableKey = tableKey;
-      $('spTableBox').innerHTML = this.tableHtml(lang);
-      $('spHint').textContent = t('sp.hint');
-    }
-    $('spTop').innerHTML = `
-      <header class="sp-head">
-        <div>
-          <h1>${esc(t('sp.title'))}</h1>
-          <p class="muted">${esc(t('sp.intro'))}</p>
+    return `
+      <div class="sp-top">
+        <button type="button" class="sp-arrow" data-act="prev" aria-label="${esc(t('sp.prev'))}">${icon('prev')}</button>
+        <div class="sp-count">
+          <span>${esc(t('sp.wordOf', { n: this.index + 1, total: words.length }))}</span>
+          <div class="sp-dots" aria-hidden="true">${words
+            .map((w, i) => `<i class="${this.mastered(w) ? 'is-ok' : this.stats(w).attempts ? 'is-tried' : ''}${i === this.index ? ' is-current' : ''}"></i>`)
+            .join('')}</div>
         </div>
-        <div class="sp-voice" role="group" aria-label="${esc(t('sp.voice'))}">
-          <span class="muted">${esc(t('sp.voice'))}:</span>
-          ${VOICES.map(
-            (v) => `<button type="button" data-act="voice" data-voice="${v}" aria-pressed="${getVoice() === v}" ${this.dialog || this.busy ? 'disabled' : ''}>${esc(t(`sp.voice.${v}`))}</button>`,
-          ).join('')}
-        </div>
-        <nav class="sp-levels" aria-label="${esc(t('sp.levels'))}">
-          ${this.data.levels
-            .map((l) => {
-              const list = this.data.words.filter((w) => w.level === l.id);
-              const done = list.filter((w) => this.mastered(w)).length;
-              return `<button type="button" data-act="level" data-level="${l.id}" aria-pressed="${l.id === this.level}">
-                <span>${esc(l[lang])}</span><small>${done}/${list.length}</small></button>`;
-            })
-            .join('')}
-        </nav>
-      </header>
-
-      <div class="sp-main">
-        <section class="sp-card" aria-live="polite">
-          <div class="sp-top">
-            <span class="muted">${esc(t('sp.wordOf', { n: this.index + 1, total: words.length }))}</span>
-            <div class="sp-dots" aria-hidden="true">${words
-              .map((w, i) => `<i class="${this.mastered(w) ? 'is-ok' : this.stats(w).attempts ? 'is-tried' : ''}${i === this.index ? ' is-current' : ''}"></i>`)
-              .join('')}</div>
-          </div>
-          <p class="sp-word" lang="tg">${letters}</p>
-          <p class="sp-ru">${esc(word.ru)}</p>
-          <div class="sp-syllables" lang="tg">${syllables}</div>
-
-          <button type="button" class="btn btn-lg sp-dialog${this.dialog ? ' is-on' : ''}" data-act="dialog">
-            <svg viewBox="0 0 24 24" aria-hidden="true">${
-              this.dialog
-                ? '<rect x="6" y="6" width="12" height="12" rx="2"/>'
-                : '<path d="M4 5h16v10H9l-5 4V5z"/><path d="M8 9h8M8 12h5"/>'
-            }</svg>
-            ${esc(t(this.dialog ? 'sp.dialogStopBtn' : 'sp.dialogBtn'))}</button>
-          ${this.dialog ? `<p class="sp-dialog-state" aria-live="polite">${esc(t(listening ? 'sp.listening' : 'sp.dialogSpeaking'))}</p>` : ''}
-
-          <div class="sp-actions">
-            <button type="button" class="btn btn-secondary" data-act="listen" ${this.busy || listening || this.dialog ? 'disabled' : ''}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12"/></svg>
-              ${esc(t('sp.listen'))}</button>
-            <button type="button" class="btn btn-secondary" data-act="slow" ${this.busy || listening || this.dialog ? 'disabled' : ''}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 13l3-3M12 3v2"/></svg>
-              ${esc(t('sp.slow'))}</button>
-            <button type="button" class="btn btn-primary sp-mic${listening ? ' is-listening' : ''}" data-act="mic" ${this.busy || this.dialog ? 'disabled' : ''}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
-              ${esc(t(listening ? 'sp.listening' : 'sp.speak'))}</button>
-          </div>
-
-          ${
-            r
-              ? `<div class="sp-result ${r.ok ? 'is-ok' : 'is-bad'}">
-                  <div class="sp-ring" style="--p:${percent}"><b>${percent}%</b></div>
-                  <p>${esc(t(r.ok ? (percent >= 90 ? 'sp.great' : 'sp.good') : 'sp.again', { score: percent }))}</p>
-                </div>`
-              : ''
-          }
-
-          <div class="sp-nav">
-            <button type="button" class="btn btn-secondary btn-small" data-act="prev">← ${esc(t('sp.prev'))}</button>
-            <button type="button" class="btn btn-secondary btn-small" data-act="next">${esc(t('sp.next'))} →</button>
-          </div>
-        </section>
-
-        <section class="sp-chat" aria-label="${esc(t('sp.assistant'))}">
-          <h2><span class="sp-bot" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4"/><path d="M12 7V4M9 13h.01M15 13h.01"/></svg></span>
-            ${esc(t('sp.assistant'))}</h2>
-          <ol class="sp-messages">
-            ${this.chat.map((m) => `<li class="sp-msg is-${m.who}${m.kind ? ` is-${m.kind}` : ''}">${esc(m.text)}</li>`).join('')}
-          </ol>
-        </section>
+        <button type="button" class="sp-arrow" data-act="next" aria-label="${esc(t('sp.next'))}">${icon('next')}</button>
       </div>
 
-`;
+      <div class="sp-word-box">
+        <p class="sp-word" lang="tg">${letters}</p>
+        <p class="sp-ru">${esc(word.ru)}</p>
+        <div class="sp-syllables" lang="tg">${syllables}</div>
+      </div>
+
+      <div class="sp-result${r ? (r.ok ? ' is-ok' : ' is-bad') : ''}">
+        ${r ? `<div class="sp-ring" style="--p:${percent}"><b>${percent}%</b></div><p>${esc(resultText)}</p>` : ''}
+      </div>
+
+      <div class="sp-controls">
+        <button type="button" class="sp-round" data-act="listen" ${locked ? 'disabled' : ''}>
+          <span class="sp-round-icon">${icon('listen')}</span><span>${esc(t('sp.listen'))}</span></button>
+        <button type="button" class="sp-round sp-mic${listening ? ' is-listening' : ''}" data-act="mic" ${this.busy || this.dialog ? 'disabled' : ''}>
+          <span class="sp-round-icon">${icon(listening ? 'stop' : 'mic')}</span>
+          <span>${esc(t(listening ? 'sp.listening' : 'sp.speak'))}</span></button>
+        <button type="button" class="sp-round" data-act="slow" ${locked ? 'disabled' : ''}>
+          <span class="sp-round-icon">${icon('slow')}</span><span>${esc(t('sp.slow'))}</span></button>
+      </div>`;
   }
 
   tableHtml(lang) {
@@ -557,33 +640,34 @@ export class SpeechView {
       { attempts: 0, correct: 0, mastered: 0 },
     );
     const accuracy = total.attempts ? Math.round((total.correct / total.attempts) * 100) : 0;
-    const rows = this.words
+    const tiles = this.words
       .map((w, i) => {
         const s = this.stats(w);
         const status = this.mastered(w) ? 'mastered' : s.attempts ? 'learning' : 'new';
-        return `<tr class="${i === this.index ? 'is-current' : ''}">
-          <td><button type="button" class="sp-link" data-act="goto" data-index="${i}" lang="tg">${esc(w.text)}</button><small>${esc(w.ru)}</small></td>
-          <td>${s.attempts}</td>
-          <td><span class="sp-bar"><i style="width:${Math.round(s.best * 100)}%"></i></span>${s.attempts ? `${Math.round(s.best * 100)}%` : '—'}</td>
-          <td><span class="sp-status is-${status}">${esc(t(`sp.status.${status}`))}</span></td>
-        </tr>`;
+        const best = Math.round(s.best * 100);
+        const title = `${t(`sp.status.${status}`)} · ${t('sp.colTries')}: ${s.attempts}`;
+        return `<button type="button" class="sp-tile is-${status}${i === this.index ? ' is-current' : ''}" data-act="goto" data-index="${i}" title="${esc(title)}">
+          <b lang="tg">${esc(w.text)}</b>
+          <small>${esc(w.ru)}</small>
+          <span class="sp-bar"><i style="width:${best}%"></i></span>
+          <em>${s.attempts ? `${best}%` : esc(t('sp.status.new'))}</em>
+        </button>`;
       })
       .join('');
+    const level = this.data.levels.find((l) => l.id === this.level);
     return `
       <section class="sp-progress">
-        <h2>${esc(t('sp.progressTitle'))}</h2>
-        <div class="pf-stats">
-          <div class="is-ok"><b>${total.mastered}</b><span>${esc(t('sp.statMastered', { total: all.length }))}</span></div>
-          <div><b>${accuracy}%</b><span>${esc(t('sp.statAccuracy'))}</span></div>
-          <div><b>${total.attempts}</b><span>${esc(t('sp.statAttempts'))}</span></div>
+        <div class="sp-progress-head">
+          <h2>${esc(t('sp.progressTitle'))}</h2>
+          <div class="sp-stats">
+            <div class="is-ok"><b>${total.mastered}<small>/${all.length}</small></b><span>${esc(t('sp.statMasteredShort'))}</span></div>
+            <div><b>${accuracy}%</b><span>${esc(t('sp.statAccuracy'))}</span></div>
+            <div><b>${total.attempts}</b><span>${esc(t('sp.statAttempts'))}</span></div>
+          </div>
         </div>
-        ${getUser() ? '' : `<p class="note">${esc(t('sp.loginToSave'))} <a href="#/profile">${esc(t('pf.signIn'))}</a></p>`}
-        <div class="sp-table-wrap">
-          <table class="sp-table">
-            <thead><tr><th>${esc(t('sp.colWord'))}</th><th>${esc(t('sp.colTries'))}</th><th>${esc(t('sp.colBest'))}</th><th>${esc(t('sp.colStatus'))}</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
+        ${getUser() ? '' : `<p class="sp-login">${esc(t('sp.loginToSave'))} <a href="#/profile">${esc(t('pf.signIn'))}</a></p>`}
+        <h3>${esc(level?.[lang] ?? '')}</h3>
+        <div class="sp-tiles">${tiles}</div>
       </section>`;
   }
 }
