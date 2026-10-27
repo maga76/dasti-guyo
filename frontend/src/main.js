@@ -1,6 +1,7 @@
 // Точка входа: связывает камеру, распознавание рук и все экраны сайта.
 
 import '@fontsource-variable/noto-sans/wdth.css';
+import '@fontsource-variable/onest/index.css';
 import './styles/main.css';
 
 import { applyI18n, getLang, onLangChange, setLang, t } from './i18n/i18n.js';

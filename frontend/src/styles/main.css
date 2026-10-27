@@ -1,53 +1,71 @@
 /* Дасти Гӯё — стили.
    Идея: два «экрана» рядом — камера и слово, которое видит сайт.
-   Цвета от флага и короны Таджикистана: чернильно-синий, шафрановое золото,
-   зелёный — «готово», гранатовый — запись и ошибки. Золото — только для главного действия. */
+   Стиль — как у king.tj: шрифт Onest, тёплая бумага днём и тёмно-синяя ночь, карточки с тонкой
+   рамкой, главная кнопка — синяя (ночью — белая), тонкая золотая линия сверху и в подвале,
+   у цифр — полоски цветов флага. «Экраны» (камера, табло, учитель) всегда тёмно-синие. */
 
 :root {
-  --bg: #eef1f5;
-  --surface: #ffffff;
-  --text: #16213a;
-  --muted: #5a6680;
-  --line: rgb(22 33 58 / 0.12);
-  --screen: #16213a; /* фон видео и табло со словом */
-  --screen-text: #f4f6fb;
-  --screen-muted: #a9b4cc;
-  --gold: #e8a317;
-  --gold-hover: #f2b233;
-  --gold-ink: #16213a;
-  --green: #1e7b4e;
-  --green-soft: rgb(30 123 78 / 0.12);
-  --red: #b3261e;
-  --red-soft: rgb(179 38 30 / 0.1);
-  --focus: #2f6fec;
+  --bg: #f6f2ea;
+  --surface: #fffcf6;
+  --surface-2: #f1ece2;
+  --text: #11182a;
+  --muted: #565b6c;
+  --line: #ded6c8;
+  --screen: #0a1228; /* фон видео и табло со словом */
+  --screen-text: #ecf0f8;
+  --screen-muted: #a0acc8;
+  /* --gold — главное действие и выделение (имя осталось от прежнего дизайна) */
+  --gold: #1d46be;
+  --gold-hover: #2453d6;
+  --gold-ink: #ffffff;
+  --accent: #1d46be;
+  --gold-line: #caa052;
+  --green: #15803d;
+  --green-soft: rgb(21 128 61 / 0.1);
+  --red: #c8222a;
+  --red-soft: rgb(200 34 42 / 0.08);
+  --flag-red: #c8222a;
+  --flag-white: #d6d0c4;
+  --flag-green: #15803d;
+  --focus: #1d46be;
   --hand-left: #5ec8e5;
   --hand-right: #f2b233;
   /* Серии графиков — проверены валидатором палитры (различимы при дальтонизме) */
   --series-1: #2f6fec;
   --series-2: #b07800;
-  --r-lg: 20px;
+  --r-lg: 16px;
   --r-md: 12px;
-  --font: 'Noto Sans Variable', 'Noto Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --shadow: 0 1px 2px rgb(60 45 20 / 0.05), 0 8px 24px -12px rgb(60 45 20 / 0.12);
+  --font: 'Onest Variable', 'Onest', 'Noto Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f1626;
-    --surface: #182339;
-    --text: #eef2f8;
-    --muted: #9aa7bd;
-    --line: rgb(255 255 255 / 0.1);
-    --screen: #0a1020;
-    --gold: #f2b233;
-    --gold-hover: #f7c55a;
-    --green: #4cc38a;
-    --green-soft: rgb(76 195 138 / 0.14);
-    --red: #ff6b5e;
-    --red-soft: rgb(255 107 94 / 0.12);
-    --focus: #7aa7ff;
+    --bg: #070d1e;
+    --surface: #0c152e;
+    --surface-2: #101b38;
+    --text: #ecf0f8;
+    --muted: #a0acc8;
+    --line: #1e2d52;
+    --screen: #0a1228;
+    --gold: #ecf0f8;
+    --gold-hover: #ffffff;
+    --gold-ink: #0a1228;
+    --accent: #84a4ff;
+    --gold-line: #deb86e;
+    --green: #4ade80;
+    --green-soft: rgb(74 222 128 / 0.12);
+    --red: #fc6e6e;
+    --red-soft: rgb(252 110 110 / 0.12);
+    --flag-red: #e0353d;
+    --flag-white: #ecf0f8;
+    --flag-green: #22a35a;
+    --focus: #84a4ff;
     --series-1: #5b8ef0;
     --series-2: #b8820f;
+    --shadow: none;
     color-scheme: dark;
   }
 }
@@ -57,7 +75,7 @@
 }
 
 html {
-  font-size: 18px;
+  font-size: 16px;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -133,7 +151,7 @@ svg:not(.chart-svg) {
 .brand-name {
   font-size: 1.3rem;
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
   letter-spacing: -0.01em;
 }
 
@@ -404,7 +422,7 @@ svg:not(.chart-svg) {
   margin: 0;
   font-size: clamp(1.4rem, 3vw, 2rem);
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
   line-height: 1.2;
 }
 
@@ -445,7 +463,7 @@ svg:not(.chart-svg) {
   padding: 0 12px;
   border: 0;
   border-radius: 24px;
-  background: rgb(10 16 32 / 0.72);
+  background: rgb(7 13 30 / 0.72);
   color: #fff;
   font-weight: 600;
   font-size: 0.9rem;
@@ -459,7 +477,7 @@ svg:not(.chart-svg) {
 }
 
 .tool:hover {
-  background: rgb(10 16 32 / 0.9);
+  background: rgb(7 13 30 / 0.9);
 }
 
 .tool-toggle input {
@@ -482,7 +500,7 @@ svg:not(.chart-svg) {
   margin-left: auto;
   padding: 4px 10px;
   border-radius: 12px;
-  background: rgb(10 16 32 / 0.6);
+  background: rgb(7 13 30 / 0.6);
   color: #fff;
   font-size: 0.8rem;
   font-weight: 600;
@@ -497,7 +515,7 @@ svg:not(.chart-svg) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgb(10 16 32 / 0.45);
+  background: rgb(7 13 30 / 0.45);
   color: #fff;
   text-align: center;
   pointer-events: none;
@@ -522,7 +540,7 @@ svg:not(.chart-svg) {
 .stage.recording .countdown {
   inset: auto 0 0;
   padding: 10px 16px 76px;
-  background: linear-gradient(to top, rgb(10 16 32 / 0.6), transparent);
+  background: linear-gradient(to top, rgb(7 13 30 / 0.6), transparent);
 }
 
 .stage.recording .countdown-number {
@@ -752,7 +770,7 @@ svg:not(.chart-svg) {
 /* Подсказка вместо слова — мельче, чтобы не путать с распознанным жестом */
 .readout-word.is-idle {
   font-size: clamp(1.8rem, 3vw, 2.6rem);
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
   letter-spacing: 0;
   color: rgb(244 246 251 / 0.3);
 }
@@ -783,7 +801,7 @@ svg:not(.chart-svg) {
   margin: 0 0 8px;
   font-size: 1.5rem;
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
   line-height: 1.2;
 }
 
@@ -987,7 +1005,7 @@ svg:not(.chart-svg) {
 .warnings li {
   padding: 10px 14px;
   border-radius: var(--r-md);
-  background: rgb(232 163 23 / 0.14);
+  background: rgb(227 160 8 / 0.14);
   font-size: 0.9rem;
 }
 
@@ -1206,7 +1224,7 @@ svg:not(.chart-svg) {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
 }
 
 .icon-row {
@@ -1391,7 +1409,7 @@ svg:not(.chart-svg) {
   max-width: 100%;
   margin: 0;
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
   line-height: 1.1;
   overflow-wrap: anywhere;
 }
@@ -1421,7 +1439,7 @@ body[data-route='avatar'] .layout {
   align-items: start;
 }
 
-/* Сцена: тёмная студия, тёплый свет за спиной аватара, свечение пола */
+/* Сцена: тёмно-синяя студия, мягкий свет за спиной аватара, свечение пола */
 .av-stage {
   position: relative;
   height: min(78dvh, 760px);
@@ -1430,10 +1448,10 @@ body[data-route='avatar'] .layout {
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(ellipse 34% 44% at 50% 36%, rgb(242 178 51 / 0.2), transparent 70%),
-    radial-gradient(ellipse 85% 75% at 50% 28%, #24365f 0%, #121b33 55%, #070b16 100%);
+    radial-gradient(ellipse 34% 44% at 50% 36%, rgb(132 164 255 / 0.18), transparent 70%),
+    radial-gradient(ellipse 85% 75% at 50% 28%, #1a2a55 0%, #0c152e 55%, #050a18 100%);
   box-shadow:
-    0 30px 80px -30px rgb(7 11 22 / 0.7),
+    0 30px 80px -30px rgb(5 9 22 / 0.7),
     inset 0 0 0 1px rgb(255 255 255 / 0.06);
 }
 
@@ -1446,7 +1464,7 @@ body[data-route='avatar'] .layout {
   width: 72%;
   height: 32%;
   transform: translateX(-50%);
-  background: radial-gradient(ellipse at center, rgb(122 167 255 / 0.2), transparent 70%);
+  background: radial-gradient(ellipse at center, rgb(132 164 255 / 0.16), transparent 70%);
 }
 
 /* Затемнение снизу — чтобы субтитры читались на любом фоне */
@@ -1455,7 +1473,7 @@ body[data-route='avatar'] .layout {
   position: absolute;
   inset: auto 0 0;
   height: 42%;
-  background: linear-gradient(to top, rgb(5 8 18 / 0.92), transparent);
+  background: linear-gradient(to top, rgb(4 8 20 / 0.92), transparent);
   pointer-events: none;
 }
 
@@ -1523,7 +1541,7 @@ body[data-route='avatar'] .layout {
 
 .av-speed button[aria-pressed='true'] {
   background: #fff;
-  color: #0a1020;
+  color: #0a1228;
 }
 
 /* Выбор аватара — слева сверху, под значком */
@@ -1557,7 +1575,7 @@ body[data-route='avatar'] .layout {
 
 .av-pick button[aria-pressed='true'] {
   background: #fff;
-  color: #0a1020;
+  color: #0a1228;
 }
 
 .av-pick button:disabled {
@@ -1575,7 +1593,7 @@ body[data-route='avatar'] .layout {
   margin: 0;
   padding: 8px 8px 6px;
   border-radius: 18px;
-  background: rgb(7 11 22 / 0.55);
+  background: rgb(5 9 22 / 0.55);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
   backdrop-filter: blur(10px);
 }
@@ -1642,13 +1660,13 @@ body[data-route='avatar'] .layout {
   color: rgb(255 255 255 / 0.68);
   font-size: clamp(1.2rem, 2vw, 1.6rem);
   font-weight: 600;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
   letter-spacing: 0;
 }
 
 .av-word.is-done {
   font-size: clamp(1.6rem, 3vw, 2.6rem);
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
 }
 
 .av-tokens {
@@ -1676,7 +1694,7 @@ body[data-route='avatar'] .layout {
 
 .av-token.is-current {
   background: var(--hand-right);
-  color: #0a1020;
+  color: #0a1228;
   transform: translateY(-2px);
 }
 
@@ -1763,7 +1781,7 @@ body[data-route='avatar'] .layout {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
 }
 
 .av-mic-row {
@@ -1784,7 +1802,7 @@ body[data-route='avatar'] .layout {
   border-radius: 50%;
   background: var(--gold);
   color: var(--gold-ink);
-  box-shadow: 0 10px 30px -8px rgb(232 163 23 / 0.6);
+  box-shadow: 0 10px 30px -8px rgb(227 160 8 / 0.6);
   cursor: pointer;
 }
 
@@ -1938,7 +1956,7 @@ body[data-route='avatar'] .layout {
 }
 
 .net-badge[data-state='noServer'] {
-  background: rgb(232 163 23 / 0.16);
+  background: rgb(227 160 8 / 0.16);
   color: var(--text);
 }
 
@@ -2006,7 +2024,7 @@ body[data-route='admin'] .layout {
   margin: 0;
   font-size: 1.6rem;
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
 }
 
 .admin-page h2 {
@@ -2282,7 +2300,7 @@ body[data-route='admin'] .layout {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
 }
 
 .vocab-grid {
@@ -2790,7 +2808,7 @@ body[data-route='model'] .layout {
 
 @media (max-width: 720px) {
   html {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .topbar {
@@ -2897,7 +2915,7 @@ body[data-route='profile'] .layout {
   margin: 0;
   font-size: 1.6rem;
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
 }
 
 .profile-page h2 {
@@ -3344,7 +3362,7 @@ body[data-route='profile'] .layout {
 }
 
 .pf-board li.is-me {
-  background: rgb(232 163 23 / 0.16);
+  background: rgb(227 160 8 / 0.16);
   font-weight: 700;
 }
 
@@ -3396,7 +3414,7 @@ body[data-route='speech'] .layout {
   margin: 0 0 6px;
   font-size: 1.6rem;
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
 }
 
 .speech-page h2 {
@@ -3514,7 +3532,7 @@ body[data-route='speech'] .layout {
   overflow: hidden;
   border-radius: var(--r-lg);
   background:
-    radial-gradient(520px 320px at 12% 0%, rgb(232 163 23 / 0.22), transparent 70%),
+    radial-gradient(520px 320px at 12% 0%, rgb(132 164 255 / 0.18), transparent 70%),
     radial-gradient(600px 400px at 100% 100%, rgb(90 120 255 / 0.16), transparent 70%),
     var(--screen);
   color: var(--screen-text);
@@ -3574,7 +3592,7 @@ body[data-route='speech'] .layout {
   z-index: 1;
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 8px 24px rgb(232 163 23 / 0.35));
+  filter: drop-shadow(0 8px 24px rgb(227 160 8 / 0.35));
   animation: sp-float 4s ease-in-out infinite;
 }
 
@@ -3583,7 +3601,7 @@ body[data-route='speech'] .layout {
 }
 
 .sp-teacher .t-eyes {
-  fill: #16213a;
+  fill: #0a1228;
   transform-box: fill-box;
   transform-origin: center;
   animation: sp-blink 5s infinite;
@@ -3596,13 +3614,13 @@ body[data-route='speech'] .layout {
 
 .sp-teacher .t-smile {
   fill: none;
-  stroke: #16213a;
+  stroke: #0a1228;
   stroke-width: 4;
   stroke-linecap: round;
 }
 
 .sp-teacher .t-mouth {
-  fill: #16213a;
+  fill: #0a1228;
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
@@ -3892,7 +3910,7 @@ body[data-route='speech'] .layout {
   margin: 0;
   font-size: clamp(3rem, 8vw, 5.4rem);
   font-weight: 800;
-  font-stretch: 87.5%;
+  font-family: var(--font-display);
   line-height: 1;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
@@ -3941,7 +3959,7 @@ body[data-route='speech'] .layout {
 
 .sp-syl.is-active {
   background: var(--gold);
-  box-shadow: 0 0 24px rgb(232 163 23 / 0.5);
+  box-shadow: 0 0 24px rgb(227 160 8 / 0.5);
   color: var(--gold-ink);
   transform: scale(1.14);
 }
@@ -4059,7 +4077,7 @@ body[data-route='speech'] .layout {
   width: 92px;
   height: 92px;
   background: var(--gold);
-  box-shadow: 0 10px 32px rgb(232 163 23 / 0.4);
+  box-shadow: 0 10px 32px rgb(227 160 8 / 0.4);
   color: var(--gold-ink);
 }
 
@@ -4141,7 +4159,7 @@ body[data-route='speech'] .layout {
   margin: 14px 0 0;
   padding: 10px 14px;
   border-radius: var(--r-md);
-  background: rgb(232 163 23 / 0.12);
+  background: rgb(227 160 8 / 0.12);
   font-weight: 600;
 }
 
@@ -4358,4 +4376,139 @@ body[data-route='speech'] .layout {
 
 .pf-danger a {
   color: var(--muted);
+}
+
+/* Телефон: пока камера не включена, окно камеры выше, чтобы приглашение помещалось целиком
+   (кадр 4:3 на узком экране слишком низкий) */
+@media (max-width: 600px) {
+  .stage:has(> .stage-message:not([hidden])) {
+    aspect-ratio: auto;
+    min-height: 380px;
+  }
+
+  .stage-message {
+    gap: 10px;
+    padding: 36px 18px;
+  }
+
+  .stage-message-icon {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* ---------- Стиль king.tj ---------- */
+
+/* Тонкая золотая линия по верху страницы и над подвалом */
+body::before {
+  content: '';
+  flex: none;
+  height: 2px;
+  background: var(--gold-line);
+}
+
+.footer {
+  border-top: 1px solid var(--gold-line);
+  margin-top: 24px;
+  padding-top: 24px;
+}
+
+/* Заголовки — плотные, с узким межбуквенным расстоянием */
+h1,
+h2,
+h3,
+.brand-name,
+.readout-word,
+.av-word,
+.bigtext-value,
+.sp-word,
+.model-hero-number,
+.stage-message-title {
+  letter-spacing: -0.03em;
+}
+
+h1 {
+  font-weight: 700;
+}
+
+/* Шапка: вкладки без подложки, активная — на светлой плашке акцентным цветом */
+.tabs {
+  gap: 2px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.tabs a {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.tabs a[aria-current='page'] {
+  background: var(--surface-2);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.brand-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+/* Внутри тёмных «экранов» выделение всегда светлое — как в ночной теме king.tj */
+.stage,
+.readout,
+.model-hero,
+.pf-hero,
+.sp-stage,
+.bigtext,
+.av-stage {
+  --gold: #ecf0f8;
+  --gold-hover: #ffffff;
+  --gold-ink: #0a1228;
+  border: 1px solid #1e2d52;
+}
+
+/* Карточки — с тонкой рамкой и мягкой тенью днём */
+.model-card,
+.sp-progress,
+.pf-auth-form,
+.model-guard,
+.guard {
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--line);
+}
+
+/* Цифры с полосками цветов флага слева, как на king.tj */
+.model-fact,
+.sp-stats div {
+  border-radius: 10px;
+}
+
+.model-fact:nth-child(1),
+.sp-stats div:nth-child(1) {
+  box-shadow: inset 3px 0 0 var(--flag-red);
+}
+
+.model-fact:nth-child(2),
+.sp-stats div:nth-child(2) {
+  box-shadow: inset 3px 0 0 var(--flag-white);
+}
+
+.model-fact:nth-child(3),
+.sp-stats div:nth-child(3) {
+  box-shadow: inset 3px 0 0 var(--flag-green);
+}
+
+/* Кнопка разговора — синяя, как главные кнопки king.tj */
+.sp-dialog {
+  background: #345cd2;
+  color: #fff;
+}
+
+.sp-dialog.is-on {
+  background: var(--st-red);
+  color: #2b0905;
 }
