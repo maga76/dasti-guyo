@@ -25,6 +25,7 @@
   "status.delegate": "Ҳисобкунӣ",
   "status.delegateGPU": "GPU (корти видео)",
   "status.delegateCPU": "CPU (протсессор)",
+  "status.inWorker": "дар замина",
   "stats.title": "Суръат",
   "stats.video": "Видео",
   "stats.detect": "Таҳлил",

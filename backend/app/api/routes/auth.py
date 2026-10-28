@@ -2,6 +2,7 @@ import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, or_, select
 
@@ -67,21 +68,13 @@ def _free_username(db, base: str) -> str:
     return name
 
 
-@router.post("/google", response_model=Token, summary="Вход или регистрация через Google")
-def google(request: Request, data: GoogleIn, db: DB):
-    """Кнопка Google на сайте даёт «пропуск» (ID token). Проверяем его; если такого человека
-    ещё нет — создаём аккаунт волонтёра (как при обычной регистрации)."""
-    settings = get_settings()
-    if not settings.google_client_id:
-        raise AppError(404, "google_disabled")
-    login_limiter.hit(request.client.host if request.client else "unknown")
-    account = google_auth.verify(data.credential, settings.google_client_id)
-
+def _google_user(db, account: dict, client_host: str) -> Token:
+    """Найти или создать аккаунт по проверенным данным Google (работа с базой и bcrypt — в потоке)."""
     user = db.scalar(select(User).where(User.google_id == account["sub"]))
     if not user:
-        if not settings.allow_registration:
+        if not get_settings().allow_registration:
             raise AppError(403, "registration_closed")
-        register_limiter.hit(request.client.host if request.client else "unknown")
+        register_limiter.hit(client_host)
         user = User(
             username=_free_username(db, google_auth.username_base(account["name"])),
             # Пароля у такого аккаунта нет: случайный, никому не известный
@@ -94,6 +87,20 @@ def google(request: Request, data: GoogleIn, db: DB):
         db.commit()
         db.refresh(user)
     return Token(access_token=create_access_token(user.id, user.role), user=UserOut.model_validate(user))
+
+
+@router.post("/google", response_model=Token, summary="Вход или регистрация через Google")
+async def google(request: Request, data: GoogleIn, db: DB):
+    """Кнопка Google на сайте даёт «пропуск» (ID token). Проверяем его у Google асинхронно —
+    пока Google отвечает, сервер обслуживает других; если такого человека ещё нет — создаём
+    аккаунт волонтёра (как при обычной регистрации)."""
+    settings = get_settings()
+    if not settings.google_client_id:
+        raise AppError(404, "google_disabled")
+    client_host = request.client.host if request.client else "unknown"
+    login_limiter.hit(client_host)
+    account = await google_auth.verify(data.credential, settings.google_client_id)
+    return await run_in_threadpool(_google_user, db, account, client_host)
 
 
 @router.get("/me", response_model=UserOut, summary="Текущий пользователь")

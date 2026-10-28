@@ -4,6 +4,7 @@ import logging
 import threading
 from contextlib import asynccontextmanager
 
+import anyio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +16,7 @@ from app.core.limits import BodySizeLimitMiddleware
 from app.services import tts
 
 API_PREFIX = "/api/v1"
+THREADS = 100  # потоков для обычных запросов (см. lifespan)
 settings = get_settings()
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("alembic.runtime.plugins").setLevel(logging.WARNING)
@@ -33,6 +35,9 @@ def run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # Обычные (не async) запросы FastAPI выполняет параллельно в пуле потоков; по умолчанию их 40.
+    # Больше потоков — больше людей обслуживается одновременно (запросы к SQLite короткие)
+    anyio.to_thread.current_default_thread_limiter().total_tokens = THREADS
     settings.audio_dir.mkdir(parents=True, exist_ok=True)
     settings.models_dir.mkdir(parents=True, exist_ok=True)
     if settings.auto_migrate:

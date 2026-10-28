@@ -86,11 +86,11 @@ def test_madina_voice_endpoint(client, monkeypatch):
 
     calls = []
 
-    def fake_mp3(text):
+    async def fake_mp3(text):
         calls.append(text)
         return b"ID3fake-mp3"
 
-    monkeypatch.setattr(voice, "synthesize", fake_mp3)
+    monkeypatch.setattr(voice, "_synthesize", fake_mp3)
     for _ in range(2):
         res = client.get(f"{API}/tts", params={"text": "Раҳмат", "voice": "madina"})
         assert res.status_code == 200
@@ -102,14 +102,38 @@ def test_madina_voice_endpoint(client, monkeypatch):
 def test_madina_falls_back_to_mms(client, monkeypatch):
     from app.services import voice
 
-    def offline(text):
+    async def offline(text):
         raise tts.TtsUnavailable()
 
-    monkeypatch.setattr(voice, "synthesize", offline)
+    monkeypatch.setattr(voice, "_synthesize", offline)
     monkeypatch.setattr(tts, "synthesize", lambda text: b"RIFF-wav")
     res = client.get(f"{API}/tts", params={"text": "Хуб шуд", "voice": "madina"})
     assert res.status_code == 200
     assert res.headers["content-type"] == "audio/wav"
+
+
+def test_madina_same_text_at_once_is_voiced_once(tmp_path, monkeypatch):
+    """Два одновременных запроса одной фразы — сервис Microsoft вызывается один раз."""
+    import asyncio
+
+    from app.services import voice
+
+    monkeypatch.setattr(voice, "_path", lambda text: tmp_path / "same.mp3")
+    calls = []
+
+    async def slow_mp3(text):
+        calls.append(text)
+        await asyncio.sleep(0.05)
+        return b"ID3slow"
+
+    monkeypatch.setattr(voice, "_synthesize", slow_mp3)
+
+    async def both():
+        return await asyncio.gather(voice.cached_mp3_async("Салом"), voice.cached_mp3_async("Салом"))
+
+    first, second = asyncio.run(both())
+    assert first == second and first.read_bytes() == b"ID3slow"
+    assert calls == ["Салом"]
 
 
 def test_unknown_voice_rejected(client):

@@ -261,7 +261,8 @@ function renderStatus() {
 
   const cameraText = { off: 'status.cameraOff', starting: 'status.cameraStarting', on: 'status.cameraOn' };
   setState('stCamera', t(cameraText[state.camera]), state.camera === 'on' ? 'ok' : '');
-  $('stDelegate').textContent = tracker.delegate ? t(`status.delegate${tracker.delegate}`) : '—';
+  const where = tracker.inWorker ? `, ${t('status.inWorker')}` : '';
+  $('stDelegate').textContent = tracker.delegate ? t(`status.delegate${tracker.delegate}`) + where : '—';
 }
 
 function renderStats() {

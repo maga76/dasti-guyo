@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, Request, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
@@ -27,14 +28,22 @@ async def upload_audio(
 ):
     if (gesture_id is None) == (phrase_id is None):
         raise AppError(422, "audio_target")
+    # База — в потоке, приём файла — асинхронно: долгие загрузки с телефона не задерживают других
+    await run_in_threadpool(_check_target, db, gesture_id, phrase_id)
+    path, content_type = await save_audio(file)
+    return await run_in_threadpool(_add_clip, request, db, user.id, gesture_id, phrase_id, path, content_type)
+
+
+def _check_target(db, gesture_id: int | None, phrase_id: int | None) -> None:
     if gesture_id is not None:
         get_or_404(db, Gesture, gesture_id, "gesture_not_found")
     else:
         get_or_404(db, Phrase, phrase_id, "phrase_not_found")
 
-    path, content_type = await save_audio(file)
+
+def _add_clip(request: Request, db, user_id: int, gesture_id, phrase_id, path: str, content_type: str):
     clip = AudioClip(
-        gesture_id=gesture_id, phrase_id=phrase_id, file_path=path, content_type=content_type, user_id=user.id
+        gesture_id=gesture_id, phrase_id=phrase_id, file_path=path, content_type=content_type, user_id=user_id
     )
     db.add(clip)
     db.commit()

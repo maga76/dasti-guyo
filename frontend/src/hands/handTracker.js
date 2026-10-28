@@ -1,71 +1,104 @@
-// Обнаружение рук через MediaPipe HandLandmarker: 21 точка на каждой руке.
-// Сначала пробуем GPU (быстрее), если не получилось — CPU.
-// WASM (~13 МБ) и модель (~7.5 МБ) качаются надёжно: CDN → наш сервер, с повторами (net/download.js).
+// Обнаружение рук: MediaPipe HandLandmarker, 21 точка на каждой руке (само распознавание и
+// отсев ложных рук — handCore.js).
 //
-// Ложные руки (лицо в профиль, узор на флаге) отсеиваются позой тела (PoseLandmarker lite):
-// настоящая кисть всегда у запястья человека. Поза грузится в фоне после рук и не задерживает запуск;
-// пока её нет (или человека не видно целиком) — проверка по позе не делается.
+// Обычно распознавание идёт в фоновом потоке (handWorker.js): страница отдаёт ему кадр и не ждёт,
+// поэтому интерфейс, анимации и 3D-аватар не подтормаживают. Если браузер не умеет фоновые потоки
+// с OffscreenCanvas (старые Safari) или поток не запустился — распознаём на странице, как раньше.
+//
+// WASM (~13 МБ) и модели качаются здесь, надёжно: CDN → наш сервер, с повторами (net/download.js).
+// Поза тела (для отсева ложных рук) грузится в фоне после рук и не задерживает запуск.
 
-import { FilesetResolver, HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
+import { FilesetResolver } from '@mediapipe/tasks-vision';
 import { config } from '../config.js';
 import { download, mediapipeWasmBases } from '../net/download.js';
 
-// Точки позы у кистей: запястье, мизинец, указательный, большой — левая (15…21) и правая (16…22)
-const POSE_HAND_POINTS = [15, 17, 19, 21, 16, 18, 20, 22];
-const POSE_EVERY = 3; // поза меняется медленнее кистей — достаточно каждого третьего кадра
-const POSE_MAX_AGE_MS = 600;
+// Кадр для фонового потока уменьшаем до этой ширины: точки рук — в долях кадра и не меняются,
+// а копировать и распознавать маленький кадр быстрее
+const WORKER_FRAME_WIDTH = 960;
+const WORKER_START_TIMEOUT_MS = 60_000;
 
-/**
- * Рядом ли кисть с запястьем человека (по позе тела).
- * @param {{x:number,y:number}[]} hand 21 точка кисти
- * @param {{x:number,y:number}[]} pose 33 точки позы
- * @param {number} aspect ширина / высота кадра
- */
-export function nearBodyHand(hand, pose, aspect) {
-  const d = (a, b) => Math.hypot((a.x - b.x) * aspect, a.y - b.y);
-  // Размер кисти — наибольшее из длины и ширины ладони; не меньше 3% высоты кадра
-  const size = Math.max(d(hand[0], hand[9]), d(hand[5], hand[17]), 0.03);
-  const center = { x: (hand[0].x + hand[9].x) / 2, y: (hand[0].y + hand[9].y) / 2 };
-  const nearest = Math.min(...POSE_HAND_POINTS.map((i) => Math.min(d(hand[0], pose[i]), d(center, pose[i]))));
-  return nearest < config.mediapipe.bodyHandDistance * size;
-}
+/** @typedef {import('./handCore.js').Hand} Hand */
 
-/**
- * @typedef {{x:number, y:number, z:number}} Point
- * @typedef {{side:'left'|'right', score:number, landmarks:Point[], world:Point[]}} Hand
- */
+const canUseWorker = () =>
+  typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap === 'function';
+
+const videoAspect = (video) => (video.videoWidth || video.width) / (video.videoHeight || video.height) || 4 / 3;
 
 export class HandTracker {
   constructor() {
-    /** @type {HandLandmarker|null} */
-    this.landmarker = null;
+    /** @type {Worker|null} фоновый поток (обычный путь) */
+    this.worker = null;
+    /** @type {import('./handCore.js').HandCore|null} распознавание на странице (запасной путь) */
+    this.core = null;
     /** @type {'GPU'|'CPU'|null} */
     this.delegate = null;
+    this.nextId = 0;
+    this.waiting = new Map(); // номер кадра → resolve ответа потока
   }
 
   get isReady() {
-    return Boolean(this.landmarker);
+    return Boolean(this.worker || this.core);
+  }
+
+  /** Распознавание идёт в фоновом потоке. */
+  get inWorker() {
+    return Boolean(this.worker);
   }
 
   /**
-   * Загружает WASM и модель.
+   * Загружает WASM и модель и запускает распознавание.
    * @param {(percent:number|null) => void} [onProgress] процент загрузки модели
    */
   async init(onProgress) {
-    const [fileset, modelBuffer] = await Promise.all([loadWasm(), loadModel(onProgress)]);
-
-    try {
-      this.landmarker = await createLandmarker(fileset, modelBuffer, 'GPU');
-      warmUp(this.landmarker); // некоторые видеокарты падают только на первом кадре
-      this.delegate = 'GPU';
-    } catch (err) {
-      console.warn('[hands] GPU недоступен, переключаюсь на CPU:', err);
-      this.landmarker?.close();
-      this.landmarker = await createLandmarker(fileset, modelBuffer, 'CPU');
-      warmUp(this.landmarker);
-      this.delegate = 'CPU';
+    const modelPromise = loadModel(onProgress);
+    if (canUseWorker()) {
+      try {
+        // Фоновому потоку нужен вариант WASM-загрузчика в виде модуля
+        const [fileset, model] = await Promise.all([loadWasm(true), modelPromise]);
+        await this.startWorker(fileset, model);
+        this.initPose(fileset); // в фоне
+        return;
+      } catch (err) {
+        console.warn('[hands] Фоновый поток недоступен — распознаю на странице:', err);
+      }
     }
+    const [{ HandCore }, fileset, model] = await Promise.all([import('./handCore.js'), loadWasm(false), modelPromise]);
+    this.core = new HandCore();
+    this.delegate = await this.core.create(fileset, model);
     this.initPose(fileset); // в фоне
+  }
+
+  startWorker(fileset, model) {
+    const worker = new Worker(new URL('./handWorker.js', import.meta.url), { type: 'module' });
+    return new Promise((resolve, reject) => {
+      const fail = (err) => {
+        clearTimeout(timer);
+        worker.terminate();
+        reject(err);
+      };
+      const timer = setTimeout(() => fail(new Error('фоновый поток не ответил')), WORKER_START_TIMEOUT_MS);
+      worker.onerror = (e) => fail(new Error(e.message || 'ошибка фонового потока'));
+      worker.onmessage = ({ data }) => {
+        if (data.type === 'error') return fail(new Error(data.message));
+        if (data.type !== 'ready') return;
+        clearTimeout(timer);
+        this.worker = worker;
+        this.delegate = data.delegate;
+        worker.onmessage = (e) => this.onWorkerMessage(e.data);
+        worker.onerror = (e) => console.error('[hands] Ошибка фонового потока:', e.message);
+        resolve();
+      };
+      // Копия модели: если поток не запустится, оригинал понадобится странице
+      const copy = model.slice();
+      worker.postMessage({ type: 'init', fileset, model: copy.buffer }, [copy.buffer]);
+    });
+  }
+
+  onWorkerMessage(data) {
+    if (data.type !== 'hands') return;
+    const resolve = this.waiting.get(data.id);
+    this.waiting.delete(data.id);
+    resolve?.(data);
   }
 
   async initPose(fileset) {
@@ -74,128 +107,57 @@ export class HandTracker {
       const buffer = await download(import.meta.env.DEV ? [mp.poseModelPath, mp.poseModelUrl] : [mp.poseModelUrl, mp.poseModelPath], {
         cacheKey: mp.poseModelUrl,
       });
-      this.pose = await PoseLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetBuffer: new Uint8Array(buffer), delegate: this.delegate },
-        runningMode: 'VIDEO',
-        numPoses: 1,
-      });
+      if (this.worker) this.worker.postMessage({ type: 'pose', fileset, buffer }); // копией: файл мог остаться в памяти загрузчика
+      else await this.core.createPose(fileset, buffer);
     } catch (err) {
       console.warn('[hands] Поза тела не загрузилась — ложные руки отсеиваются без неё:', err);
     }
-  }
-
-  /** Последняя поза человека (обновляется каждые POSE_EVERY кадров) или null. */
-  bodyPose(video, timestamp) {
-    if (!this.pose) return null;
-    this.poseTick = (this.poseTick ?? 0) + 1;
-    if (this.poseTick % POSE_EVERY === 0) {
-      try {
-        const result = this.pose.detectForVideo(video, timestamp);
-        this.lastPose = result.landmarks?.[0] ?? null;
-        this.lastPoseAt = timestamp;
-      } catch {
-        this.lastPose = null;
-      }
-    }
-    return timestamp - (this.lastPoseAt ?? -Infinity) < POSE_MAX_AGE_MS ? this.lastPose : null;
   }
 
   /**
    * Находит руки на текущем кадре видео.
    * @param {HTMLVideoElement} video
    * @param {number} timestamp монотонно растущее время, мс
-   * @returns {Hand[]}
+   * @returns {Promise<Hand[]>|Hand[]} в фоновом потоке — обещание, на странице — сразу
    */
   detect(video, timestamp) {
-    const result = this.landmarker.detectForVideo(video, timestamp);
-    const mp = config.mediapipe;
-    const aspect = (video.videoWidth || video.width) / (video.videoHeight || video.height) || 4 / 3;
-    // В разных версиях библиотеки поле называется по-разному
-    const handedness = result.handedness ?? result.handednesses ?? [];
-    const hands = result.landmarks
-      .map((landmarks, i) => {
-        const category = handedness[i]?.[0];
-        let side = category?.categoryName === 'Left' ? 'left' : 'right';
-        if (mp.swapHandedness) side = side === 'left' ? 'right' : 'left';
-        return {
-          side,
-          score: category?.score ?? 0,
-          landmarks,
-          world: result.worldLandmarks?.[i] ?? [],
-        };
-      })
-      .filter((hand) => hand.score >= mp.minHandScore && looksLikeHand(hand.landmarks, aspect));
-    // Человек виден — кисть должна быть у его запястья (иначе это лицо, узор, предмет)
-    const body = hands.length ? this.bodyPose(video, timestamp) : null;
-    const real = body ? hands.filter((hand) => nearBodyHand(hand.landmarks, body, aspect)) : hands;
-    return this.stable(real);
+    const aspect = videoAspect(video);
+    if (!this.worker) return this.core.detect(video, timestamp, aspect);
+    return this.detectInWorker(video, timestamp, aspect);
   }
 
-  /** Рука «появилась», только если её видно stableFrames кадров подряд. */
-  stable(hands) {
-    this.streak ??= { left: 0, right: 0 };
-    for (const side of ['left', 'right']) {
-      this.streak[side] = hands.some((h) => h.side === side) ? this.streak[side] + 1 : 0;
-    }
-    return hands.filter((h) => this.streak[h.side] >= config.mediapipe.stableFrames);
+  async detectInWorker(video, timestamp, aspect) {
+    const width = Math.min(WORKER_FRAME_WIDTH, video.videoWidth || WORKER_FRAME_WIDTH);
+    const bitmap = await createImageBitmap(video, {
+      resizeWidth: width,
+      resizeHeight: Math.round(width / aspect),
+      resizeQuality: 'low',
+    });
+    const id = ++this.nextId;
+    const reply = await new Promise((resolve) => {
+      this.waiting.set(id, resolve);
+      this.worker.postMessage({ type: 'detect', id, bitmap, timestamp, aspect }, [bitmap]);
+    });
+    if (reply.error) throw new Error(reply.error);
+    return reply.hands;
   }
 
   close() {
-    this.landmarker?.close();
-    this.landmarker = null;
+    this.worker?.terminate();
+    this.core?.close();
+    this.worker = null;
+    this.core = null;
   }
-}
-
-/**
- * Пропорции похожи на кисть? У ложных срабатываний (лицо, волосы, узор одежды) точки часто
- * сбиваются в комок или растягиваются: пальцы короче половины ладони или длиннее двух с половиной.
- * @param {{x:number, y:number}[]} p 21 точка (x, y — доли ширины и высоты кадра)
- * @param {number} aspect ширина / высота кадра
- */
-// Пределы проверены на 30 865 руках из записей Slovo: отбрасывается 0.06% настоящих рук
-export function looksLikeHand(p, aspect) {
-  const d = (a, b) => Math.hypot((p[a].x - p[b].x) * aspect, p[a].y - p[b].y);
-  const palm = d(0, 9);
-  // Крошечная «рука» — шум. Кисть, направленная пальцами в камеру, в кадре короткая,
-  // поэтому размер — наибольшее из длины и ширины ладони
-  if (Math.max(palm, d(5, 17), d(0, 5), d(0, 17)) < 0.01) return false;
-  const chain = (ids) => ids.slice(1).reduce((sum, id, i) => sum + d(ids[i], id), 0);
-  // Пальцы не длиннее двух с половиной ладоней (ладонь — наибольшее из длины и ширины)
-  const ref = Math.max(palm, d(5, 17));
-  for (const ids of [[5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16], [17, 18, 19, 20]]) {
-    if (chain(ids) > 2.5 * ref) return false;
-  }
-  // Ладонь не вдвое шире своей длины
-  return d(5, 17) < 2 * Math.max(palm, d(0, 5), d(0, 17));
-}
-
-function createLandmarker(fileset, modelBuffer, delegate) {
-  const mp = config.mediapipe;
-  return HandLandmarker.createFromOptions(fileset, {
-    baseOptions: { modelAssetBuffer: modelBuffer, delegate },
-    runningMode: 'VIDEO',
-    numHands: mp.numHands,
-    minHandDetectionConfidence: mp.minDetectionConfidence,
-    minHandPresenceConfidence: mp.minPresenceConfidence,
-    minTrackingConfidence: mp.minTrackingConfidence,
-  });
-}
-
-/** Пробный прогон на пустой картинке: проверяет, что выбранный делегат реально работает. */
-function warmUp(landmarker) {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 64;
-  canvas.getContext('2d').fillRect(0, 0, 64, 64);
-  landmarker.detectForVideo(canvas, performance.now());
 }
 
 /**
  * WASM MediaPipe: имена файлов подбирает сама библиотека (с SIMD или без), а скачиваем
  * их мы — надёжно — и отдаём библиотеке как blob-адреса.
+ * @param {boolean} asModule загрузчик в виде модуля (для фонового потока)
  */
-async function loadWasm() {
+async function loadWasm(asModule) {
   const bases = mediapipeWasmBases();
-  const names = await FilesetResolver.forVisionTasks(bases[0]);
+  const names = await FilesetResolver.forVisionTasks(bases[0], asModule);
   const file = (path) => path.split('/').pop();
   const blobUrl = async (name, type) => {
     const buffer = await download(bases.map((b) => `${b}/${name}`));

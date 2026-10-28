@@ -32,7 +32,11 @@ def claims(**over):
 def google_on(monkeypatch):
     monkeypatch.setattr(get_settings(), "google_client_id", CLIENT_ID)
     answer = {"claims": claims()}
-    monkeypatch.setattr(google_auth, "_fetch", lambda credential: answer["claims"])
+
+    async def fake_fetch(credential):
+        return answer["claims"]
+
+    monkeypatch.setattr(google_auth, "_fetch", fake_fetch)
     return answer
 
 
@@ -89,10 +93,14 @@ def test_username_base():
 
 
 def test_google_unreachable(monkeypatch):
-    def offline(url, timeout):
-        raise TimeoutError()
+    import asyncio
 
-    monkeypatch.setattr(google_auth.urllib.request, "urlopen", offline)
+    import httpx
+
+    async def offline(self, url, **kwargs):
+        raise httpx.ConnectTimeout("нет связи")
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", offline)
     with pytest.raises(AppError) as err:
-        google_auth.verify(TOKEN, CLIENT_ID)
+        asyncio.run(google_auth.verify(TOKEN, CLIENT_ID))
     assert err.value.status == 503

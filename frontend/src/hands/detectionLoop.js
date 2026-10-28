@@ -69,25 +69,28 @@ export class DetectionLoop {
     this.videoFps.tick();
 
     this.frameIndex += 1;
-    if (this.frameIndex % this.skip !== 0) return;
+    // Прошлый кадр ещё распознаётся (в фоновом потоке) — этот пропускаем, очередь не копится
+    if (this.busy || this.frameIndex % this.skip !== 0) return;
 
     const start = performance.now();
-    let hands;
-    try {
-      hands = this.tracker.detect(video, start);
-    } catch (err) {
-      console.error('[hands] Ошибка распознавания:', err);
-      return;
-    }
-    const spent = performance.now() - start;
-    this.avgDetectMs = this.avgDetectMs ? this.avgDetectMs * 0.9 + spent * 0.1 : spent;
-    this.detectFps.tick();
-    this.adaptSkip(start);
-
-    this.onHands(hands);
+    this.busy = true;
+    Promise.resolve()
+      .then(() => this.tracker.detect(video, start))
+      .then((hands) => {
+        const spent = performance.now() - start;
+        this.avgDetectMs = this.avgDetectMs ? this.avgDetectMs * 0.9 + spent * 0.1 : spent;
+        this.detectFps.tick();
+        // В фоновом потоке страница не ждёт распознавания — пропуск кадров не нужен
+        if (!this.tracker.inWorker) this.adaptSkip(start);
+        if (this.running) this.onHands(hands);
+      })
+      .catch((err) => console.error('[hands] Ошибка распознавания:', err))
+      .finally(() => {
+        this.busy = false;
+      });
   }
 
-  /** Раз в секунду подбирает, сколько кадров пропускать. */
+  /** Раз в секунду подбирает, сколько кадров пропускать (только когда распознаём на странице). */
   adaptSkip(now) {
     const { budgetMs, maxSkip, adaptEveryMs } = config.perf;
     if (now - this.lastAdaptAt < adaptEveryMs) return;

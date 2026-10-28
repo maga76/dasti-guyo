@@ -25,6 +25,7 @@
   "status.delegate": "Вычисления",
   "status.delegateGPU": "GPU (видеокарта)",
   "status.delegateCPU": "CPU (процессор)",
+  "status.inWorker": "в фоновом потоке",
   "stats.title": "Скорость",
   "stats.video": "Видео",
   "stats.detect": "Анализ",

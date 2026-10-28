@@ -1,5 +1,6 @@
 """Сохранение аудиозаписей слов в media/audio с проверкой типа и размера."""
 
+import asyncio
 import uuid
 from pathlib import Path
 
@@ -50,10 +51,15 @@ async def save_audio(file: UploadFile) -> tuple[str, str]:
     if not _looks_like_audio(data[:16]):
         raise AppError(415, "audio_bad_type")
 
-    settings.audio_dir.mkdir(parents=True, exist_ok=True)
     name = f"{uuid.uuid4().hex}.{ALLOWED_TYPES[content_type]}"
-    (settings.audio_dir / name).write_bytes(data)
+    # Запись на диск — в потоке: пока пишется файл, сервер обслуживает других
+    await asyncio.to_thread(_write, settings.audio_dir / name, data)
     return f"audio/{name}", content_type
+
+
+def _write(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
 
 
 def delete_media_file(relative_path: str) -> None:

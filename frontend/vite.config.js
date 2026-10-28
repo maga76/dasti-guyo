@@ -34,6 +34,11 @@ export default defineConfig({
     __ASSET_REF__: JSON.stringify(assetRef()),
     __MEDIAPIPE_VERSION__: JSON.stringify(mediapipeVersion),
   },
+  // Фоновый поток распознавания рук (src/hands/handWorker.js) — модуль: так MediaPipe
+  // может загрузить свой WASM-загрузчик через import()
+  worker: {
+    format: 'es',
+  },
   server: {
     port: 5173,
     host: true, // доступ с других устройств в сети
