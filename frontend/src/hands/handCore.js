@@ -3,40 +3,63 @@
 // если браузер не умеет фоновые потоки с OffscreenCanvas). Само ничего не скачивает:
 // WASM и модели приносит HandTracker.
 //
-// Ложные руки (лицо в профиль, узор на флаге) отсеиваются позой тела (PoseLandmarker lite):
-// настоящая кисть всегда у запястья человека. Пока позы нет (или человека не видно целиком) —
-// проверка по позе не делается.
+// Ложные руки (голова, лицо в профиль, узор на флаге) отсеиваются позой тела (PoseLandmarker lite):
+// настоящая кисть всегда у запястья человека, и одно запястье — одна кисть. Проверяются и новые,
+// и уже ведомые руки. Пока человека не видно — проверка по позе не делается.
 
 import { HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
 import { config } from '../config.js';
 
-// Точки позы у кистей: запястье, мизинец, указательный, большой — левая (15…21) и правая (16…22)
-const POSE_HAND_POINTS = [15, 17, 19, 21, 16, 18, 20, 22];
-// Поза нужна только для проверки новой руки; свежей считаем позу не старше этого
+// Поза пересчитывается не чаще, чем раз в столько (руки — каждый кадр)
 const POSE_REFRESH_MS = 100;
 // Рука в новом кадре — та же, если её центр сдвинулся меньше чем на столько размеров ладони
 const MATCH_SIZES = 2.5;
 // Ведомая рука пропала — столько кадров показываем её последнее положение, а не обрываем
 const HOLD_FRAMES = 2;
+// Ведомая рука столько проверок позы подряд не у запястья человека — это не рука (голова, узор)
+const BODY_MISSES = 3;
+// Пока поза тела не загрузилась, новая рука должна продержаться дольше
+const STABLE_WITHOUT_POSE = 6;
 
 /**
  * @typedef {{x:number, y:number, z:number}} Point
  * @typedef {{side:'left'|'right', score:number, landmarks:Point[], world:Point[]}} Hand
  */
 
+// Точки позы у левой и правой кисти: запястье, мизинец, указательный, большой
+const POSE_WRISTS = [
+  [15, 17, 19, 21],
+  [16, 18, 20, 22],
+];
+
 /**
- * Рядом ли кисть с запястьем человека (по позе тела).
- * @param {{x:number,y:number}[]} hand 21 точка кисти
+ * Какие кисти подтверждены телом: каждое запястье человека подтверждает не больше ОДНОЙ кисти —
+ * ближайшую. Иначе при жесте у лица голова «рядом с запястьем» тоже считалась бы рукой.
+ * @param {{x:number,y:number}[][]} hands точки кистей
  * @param {{x:number,y:number}[]} pose 33 точки позы
- * @param {number} aspect ширина / высота кадра
+ * @param {number} aspect
+ * @returns {boolean[]} для каждой кисти — подтверждена ли
  */
-export function nearBodyHand(hand, pose, aspect) {
+export function bodyHands(hands, pose, aspect) {
   const d = (a, b) => Math.hypot((a.x - b.x) * aspect, a.y - b.y);
-  // Размер кисти — наибольшее из длины и ширины ладони; не меньше 3% высоты кадра
-  const size = Math.max(d(hand[0], hand[9]), d(hand[5], hand[17]), 0.03);
-  const center = { x: (hand[0].x + hand[9].x) / 2, y: (hand[0].y + hand[9].y) / 2 };
-  const nearest = Math.min(...POSE_HAND_POINTS.map((i) => Math.min(d(hand[0], pose[i]), d(center, pose[i]))));
-  return nearest < config.mediapipe.bodyHandDistance * size;
+  const pairs = [];
+  hands.forEach((hand, h) => {
+    const size = Math.max(d(hand[0], hand[9]), d(hand[5], hand[17]), 0.03);
+    const center = { x: (hand[0].x + hand[9].x) / 2, y: (hand[0].y + hand[9].y) / 2 };
+    POSE_WRISTS.forEach((points, w) => {
+      const dist = Math.min(...points.map((i) => Math.min(d(hand[0], pose[i]), d(center, pose[i]))));
+      if (dist < config.mediapipe.bodyHandDistance * size) pairs.push({ h, w, dist });
+    });
+  });
+  pairs.sort((a, b) => a.dist - b.dist);
+  const ok = hands.map(() => false);
+  const usedWrists = new Set();
+  for (const { h, w } of pairs) {
+    if (ok[h] || usedWrists.has(w)) continue;
+    ok[h] = true;
+    usedWrists.add(w);
+  }
+  return ok;
 }
 
 /**
@@ -70,7 +93,7 @@ export class HandCore {
     this.pose = null;
     /** @type {'GPU'|'CPU'|null} */
     this.delegate = null;
-    /** @type {{hand: Hand, streak: number, missed: number, accepted: boolean}[]} ведомые руки */
+    /** @type {{hand: Hand, streak: number, missed: number, accepted: boolean, bodyMisses: number}[]} ведомые руки */
     this.tracks = [];
   }
 
@@ -109,6 +132,7 @@ export class HandCore {
         this.lastPose = null;
       }
       this.lastPoseAt = timestamp;
+      this.poseVersion = (this.poseVersion ?? 0) + 1;
     }
     return this.lastPose;
   }
@@ -185,16 +209,29 @@ export class HandCore {
     // Пропавшие руки: держим немного, потом забываем
     this.tracks = this.tracks.filter((track, t) => usedTracks.has(t) || ++track.missed <= (track.accepted ? HOLD_FRAMES : 0));
     hands.forEach((hand, h) => {
-      if (!usedHands.has(h)) this.tracks.push({ hand, streak: 1, missed: 0, accepted: false });
+      if (!usedHands.has(h)) this.tracks.push({ hand, streak: 1, missed: 0, accepted: false, bodyMisses: 0 });
     });
 
-    // Новые руки, продержавшиеся stableFrames кадров, — проверка по позе тела
-    const candidates = this.tracks.filter((t) => !t.accepted && t.streak >= mp.stableFrames);
-    if (candidates.length) {
+    // Проверка по позе тела: новые руки (продержавшиеся stableFrames кадров) и — постоянно —
+    // уже ведомые, чтобы голова или узор, однажды принятые за руку, не оставались ею.
+    // Каждое запястье подтверждает только одну кисть (bodyHands)
+    const stable = this.pose ? mp.stableFrames : STABLE_WITHOUT_POSE;
+    const check = this.tracks.filter((t) => t.missed === 0 && (t.accepted || t.streak >= stable));
+    if (check.length) {
       const body = getBody();
-      for (const track of candidates) {
-        if (!body || nearBodyHand(track.hand.landmarks, body, aspect)) track.accepted = true;
-      }
+      // Промах ведомой руке засчитываем только по свежей позе: старая при быстром жесте отстаёт
+      const fresh = this.poseVersion !== this.checkedPoseVersion;
+      this.checkedPoseVersion = this.poseVersion;
+      const ok = body ? bodyHands(check.map((t) => t.hand.landmarks), body, aspect) : check.map(() => true);
+      check.forEach((track, i) => {
+        if (ok[i]) {
+          track.accepted = true;
+          track.bodyMisses = 0;
+        } else if (track.accepted && fresh && ++track.bodyMisses >= BODY_MISSES) {
+          track.accepted = false; // так долго не у запястья — это не рука
+          track.streak = 0;
+        }
+      });
     }
 
     // Не больше двух рук и не две «левые»: вторая получает другую сторону

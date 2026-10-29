@@ -119,17 +119,21 @@ export function drawHands(ctx, hands, { mirrored, labels }) {
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    // Пальцы: подложка со свечением — одной линией на весь палец (без «бугров» на суставах),
-    // сверху цветные фаланги, к кончику тоньше
+    // Пальцы: подложка — одной линией на весь палец (без «бугров» на суставах): широкий
+    // полупрозрачный ореол цвета руки и тёмная кайма, сверху цветные фаланги, к кончику тоньше.
+    // Ореол — обычной линией, а не shadowBlur: размытие тени браузер считает на каждом кадре заново,
+    // и на слабых телефонах из-за него подтормаживало видео
     for (const chain of FINGER_CHAINS) {
       ctx.beginPath();
       chain.forEach((i, k) => (k ? ctx.lineTo(...pts[i]) : ctx.moveTo(...pts[i])));
-      ctx.shadowColor = color;
-      ctx.shadowBlur = thick * 2;
+      ctx.globalAlpha = 0.25;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = thick * 2.6;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
       ctx.strokeStyle = 'rgba(0,0,0,0.35)';
       ctx.lineWidth = thick + unit;
       ctx.stroke();
-      ctx.shadowBlur = 0;
       ctx.strokeStyle = color;
       for (let k = 1; k < chain.length; k++) {
         ctx.beginPath();

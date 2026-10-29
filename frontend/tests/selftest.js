@@ -206,6 +206,7 @@ await check('Руки не обрываются: ведение по полож�
     return { side, score: 0.9, landmarks: lm, world: [] };
   };
   const core = new HandCore();
+  core.pose = {}; // «поза загружена» (сама поза — из подставных функций ниже)
   const noBody = () => null;
   const seen = (hands) => hands.map((h) => h.side).join(',') || '—';
   const run = (frames, body = noBody) => frames.map((f) => seen(core.track(f, 4 / 3, body)));
@@ -219,7 +220,23 @@ await check('Руки не обрываются: ведение по полож�
   const farBody = () => Array.from({ length: 33 }, () => ({ x: 0.1, y: 0.9, z: 0 }));
   const b = run([[hand(0.5, 0.3, 'right')], [hand(0.5, 0.3, 'right')], [hand(0.5, 0.3, 'right')]], farBody);
   assert(b.join(' ') === '— — —', b.join(' '));
-  return 'появление, удержание, сторона, отсев по телу';
+
+  // Голова у поднятой руки: одно запястье подтверждает только одну кисть — ближайшую
+  core.reset();
+  const wristAt = (x, y) => () => {
+    core.poseVersion = (core.poseVersion ?? 0) + 1;
+    return Array.from({ length: 33 }, (_, i) => ([15, 17, 19, 21].includes(i) ? { x, y, z: 0 } : { x: 0.95, y: 0.95, z: 0 }));
+  };
+  const two = () => [hand(0.4, 0.5, 'right'), hand(0.43, 0.47, 'left')]; // рука у запястья и «голова» вплотную
+  const c = run([two(), two(), two(), two()], wristAt(0.4, 0.55));
+  assert(c.at(-1) === 'right', c.join(' '));
+
+  // Голова, принятая за руку, пока человека не было видно, — убирается, когда тело видно
+  core.reset();
+  const d = run([[hand(0.5, 0.2, 'right')], [hand(0.5, 0.2, 'right')], [hand(0.5, 0.2, 'right')]]);
+  const e = run([[hand(0.5, 0.2, 'right')], [hand(0.5, 0.2, 'right')], [hand(0.5, 0.2, 'right')]], wristAt(0.2, 0.9));
+  assert(d.at(-1) === 'right' && e.join(' ') === 'right right —', `${d.join(' ')} / ${e.join(' ')}`);
+  return 'появление, удержание, сторона, отсев по телу, голова у руки';
 });
 
 await check('Помощник предложения: глагол по лицу и времени, предлоги, вопрос', async () => {

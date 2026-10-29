@@ -72,6 +72,32 @@ export class TrainError extends Error {
   }
 }
 
+/** Прямой проход сети (dense-слои; dropout при распознавании не участвует). */
+function forward(layers, input) {
+  let x = input;
+  for (const { kernel, bias, inputs, outputs, activation } of layers) {
+    const y = Float32Array.from(bias);
+    // Ядро TF.js — [входы × выходы] построчно: строка i — вклад входа i во все выходы
+    for (let i = 0; i < inputs; i++) {
+      const v = x[i];
+      if (v === 0) continue;
+      const row = i * outputs;
+      for (let j = 0; j < outputs; j++) y[j] += v * kernel[row + j];
+    }
+    if (activation === 'relu') {
+      for (let j = 0; j < outputs; j++) if (y[j] < 0) y[j] = 0;
+    } else if (activation === 'softmax') {
+      let max = -Infinity;
+      for (let j = 0; j < outputs; j++) if (y[j] > max) max = y[j];
+      let sum = 0;
+      for (let j = 0; j < outputs; j++) sum += y[j] = Math.exp(y[j] - max);
+      for (let j = 0; j < outputs; j++) y[j] /= sum;
+    }
+    x = y;
+  }
+  return x;
+}
+
 export class GestureClassifier {
   /** @param {{modelUrl?: string, metaKey?: string}} [storage] где хранить модель (тесты используют свои ключи) */
   constructor({ modelUrl = MODEL_URL, metaKey = META_KEY } = {}) {
@@ -194,6 +220,28 @@ export class GestureClassifier {
     this.tf = tf;
     this.model = model;
     this.meta = meta;
+    this.dense = null; // веса для быстрого подсчёта — заново из новой модели
+  }
+
+  /**
+   * Веса полносвязных слоёв в обычных массивах. Распознавание идёт ~7 раз в секунду, а сеть
+   * маленькая: на процессоре это 1–2 мс. На видеокарте (TF.js) каждый ответ ждал бы, пока она
+   * освободится от распознавания рук, — и страница подтормаживала.
+   */
+  denseLayers() {
+    this.dense ??= this.model.layers
+      .filter((layer) => layer.getWeights().length === 2)
+      .map((layer) => {
+        const [kernel, bias] = layer.getWeights();
+        return {
+          kernel: kernel.dataSync().slice(),
+          bias: bias.dataSync().slice(),
+          inputs: kernel.shape[0],
+          outputs: kernel.shape[1],
+          activation: layer.getConfig().activation,
+        };
+      });
+    return this.dense;
   }
 
   /**
@@ -201,9 +249,8 @@ export class GestureClassifier {
    * @returns {{label: string, confidence: number, probs: Float32Array}}
    */
   predict(frames) {
-    const tf = this.tf;
     sequenceFeatures(frames, this.input);
-    const probs = tf.tidy(() => this.model.predict(tf.tensor2d(this.input, [1, INPUT_SIZE])).dataSync());
+    const probs = forward(this.denseLayers(), this.input);
     let best = 0;
     for (let i = 1; i < probs.length; i++) if (probs[i] > probs[best]) best = i;
     return { label: this.meta.labels[best], confidence: probs[best], probs };
