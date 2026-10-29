@@ -10,11 +10,12 @@
 import { onLangChange, t } from '../i18n/i18n.js';
 import { NONE_LABEL } from '../dataset/dataset.js';
 import { loadBaseDataset } from '../dataset/baseDataset.js';
-import { buildSentence, loadDictionary } from '../dataset/dictionary.js';
+import { loadDictionary } from '../dataset/dictionary.js';
+import { completeSentence } from '../dataset/grammar.js';
 import { labelName } from './trainView.js';
 import { SignDemo } from './signDemo.js';
 import { showBigText } from './bigText.js';
-import { preloadSpeech, speak, speakSentence } from '../speech/speech.js';
+import { preloadSpeech, speak, speakAndWait } from '../speech/speech.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -28,6 +29,8 @@ export const DEFAULT_THRESHOLD = '0.6';
 export const HISTORY = 4;
 export const MIN_AGREE = 3;
 const MIN_GAP_MS = 800;
+// Человек опустил руки на столько — предложение готово: сайт произносит его целиком
+const SENTENCE_PAUSE_MS = 2500;
 
 function readSetting(key, fallback) {
   try {
@@ -106,11 +109,8 @@ export class TranslateView {
       this.lastAdded = null;
       this.renderSentence();
     });
-    $('btnSpeakSentence').addEventListener('click', () => {
-      const s = buildSentence(this.words, this.rules);
-      if (this.words.length) speakSentence(s.tj, this.words);
-    });
-    $('btnShowBig').addEventListener('click', () => showBigText(buildSentence(this.words, this.rules).tj));
+    $('btnSpeakSentence').addEventListener('click', () => this.speakSentence());
+    $('btnShowBig').addEventListener('click', () => showBigText(this.sentence().tj));
 
     // Быстрые фразы: произнести и показать крупно
     $('quickGrid').addEventListener('click', (e) => {
@@ -184,20 +184,59 @@ export class TranslateView {
     );
   }
 
+  /**
+   * Готовое предложение: если все жесты — ровно одна фраза из словаря (её проверили люди) —
+   * она; иначе помощник собирает предложение по грамматике (grammar.js).
+   */
+  sentence() {
+    const norm = (s) => s.trim().toLowerCase();
+    const rule = this.rules.find(
+      (r) => r.words.length === this.words.length && r.words.every((w, i) => norm(w) === norm(this.words[i])),
+    );
+    if (rule) return { tj: rule.text_tj, ru: rule.text_ru || rule.text_tj };
+    return completeSentence(this.words);
+  }
+
   renderSentence() {
     const text = $('sentenceText');
     const sub = $('sentenceSub');
     const empty = !this.words.length;
     text.classList.toggle('is-empty', empty);
+    $('sentenceWords').replaceChildren(
+      ...this.words.map((w) => Object.assign(document.createElement('span'), { textContent: w })),
+    );
     if (empty) {
       text.textContent = t('tr.sentenceEmpty');
       sub.textContent = '';
     } else {
-      const s = buildSentence(this.words, this.rules);
+      const s = this.sentence();
       text.textContent = s.tj;
       sub.textContent = s.ru !== s.tj ? s.ru : '';
     }
     for (const id of ['btnBackspace', 'btnClear', 'btnSpeakSentence', 'btnShowBig']) $(id).disabled = empty;
+    this.scheduleSentence();
+  }
+
+  /** После паузы в жестах — произнести готовое предложение целиком (если включён «Овоз»). */
+  scheduleSentence() {
+    clearTimeout(this.sentenceTimer);
+    if (this.words.length < 2 || !$('chkAutoSpeak').checked) return;
+    const text = this.sentence().tj;
+    if (text === this.spokenSentence) return;
+    this.sentenceTimer = setTimeout(() => this.speakSentence(), SENTENCE_PAUSE_MS);
+  }
+
+  async speakSentence() {
+    if (!this.words.length) return;
+    const { tj } = this.sentence();
+    this.spokenSentence = tj;
+    const box = $('sentenceText');
+    box.classList.add('is-speaking');
+    try {
+      await speakAndWait(tj);
+    } finally {
+      box.classList.remove('is-speaking');
+    }
   }
 
   /** Произнести текст; если голоса нет — коротко сказать об этом (только при нажатии кнопки). */

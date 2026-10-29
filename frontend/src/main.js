@@ -53,6 +53,8 @@ const recorder = new Recorder(getAspect);
 const classifier = new GestureClassifier();
 const recognizer = new LiveRecognizer({ classifier, getAspect });
 const translateView = new TranslateView({ classifier, recognizer, isCameraOn });
+// Только в режиме разработки: доступ из консоли браузера для проверок (tests, скриншоты)
+if (import.meta.env.DEV) window.__translateView = translateView;
 const modelView = new ModelView({ classifier });
 const adminView = new AdminView();
 const avatarView = new AvatarView();

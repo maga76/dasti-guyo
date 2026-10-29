@@ -260,26 +260,6 @@ function waitEnd() {
   });
 }
 
-/**
- * Произносит предложение: готовым файлом целиком; иначе, если все слова озвучены, — по словам
- * таджикским голосом (работает и без интернета); иначе — как speak (сервер или голос браузера).
- */
-export async function speakSentence(text, words) {
-  // Вся фраза есть готовым файлом — лучше всего
-  if (await fileUrl(text)) return speak(text);
-  // Все слова озвучены — читаем ими, а не запасным голосом браузера
-  const files = await Promise.all((words ?? []).map((w) => fileUrl(w)));
-  if (!files.length || files.some((f) => !f)) return speak(text);
-  let any = null;
-  for (const file of files) {
-    if (await playUrl(file)) {
-      any = 'file';
-      await waitEnd();
-    }
-  }
-  return any;
-}
-
 /** Заранее подгрузить список озвученных фраз (чтобы первое слово прозвучало без задержки). */
 export function preloadSpeech() {
   loadIndex();

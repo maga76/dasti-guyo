@@ -1,15 +1,15 @@
 {
- "createdAt": "2026-10-25T07:22:05.577106+00:00",
+ "createdAt": "2026-10-29T12:46:08.680649+00:00",
  "source": "Slovo (SberDevices), русский жестовый язык, CC BY-SA 4.0",
- "classes": 26,
- "samples": 1578,
- "signersTrain": 33,
- "signersTest": 54,
- "testAccuracy": 0.64,
+ "classes": 56,
+ "samples": 2176,
+ "signersTrain": 40,
+ "signersTest": 72,
+ "testAccuracy": 0.5949,
  "perClass": [
   {
    "label": "Салом",
-   "accuracy": 0.8
+   "accuracy": 0.6
   },
   {
    "label": "Хайр",
@@ -17,7 +17,7 @@
   },
   {
    "label": "Ҳа",
-   "accuracy": 0.6
+   "accuracy": 0.2
   },
   {
    "label": "Не",
@@ -33,7 +33,7 @@
   },
   {
    "label": "Ёрӣ додан",
-   "accuracy": 0.8
+   "accuracy": 0.6
   },
   {
    "label": "Об",
@@ -49,11 +49,11 @@
   },
   {
    "label": "Падар",
-   "accuracy": 0.6
+   "accuracy": 0.4
   },
   {
    "label": "Дӯст",
-   "accuracy": 1.0
+   "accuracy": 0.6
   },
   {
    "label": "Ман",
@@ -85,7 +85,7 @@
   },
   {
    "label": "Чаро",
-   "accuracy": 0.6
+   "accuracy": 0.4
   },
   {
    "label": "Хостан",
@@ -101,11 +101,131 @@
   },
   {
    "label": "Фардо",
-   "accuracy": 0.4
+   "accuracy": 0.2
   },
   {
    "label": "Хӯрок",
    "accuracy": 0.4
+  },
+  {
+   "label": "Футбол",
+   "accuracy": 1.0
+  },
+  {
+   "label": "Бозӣ кардан",
+   "accuracy": 0.6
+  },
+  {
+   "label": "Кор кардан",
+   "accuracy": 0.8
+  },
+  {
+   "label": "Хӯрдан",
+   "accuracy": 0.4
+  },
+  {
+   "label": "Нӯшидан",
+   "accuracy": 0.2
+  },
+  {
+   "label": "Хобидан",
+   "accuracy": 0.4
+  },
+  {
+   "label": "Рафтан",
+   "accuracy": 0.25
+  },
+  {
+   "label": "Дӯст доштан",
+   "accuracy": 1.0
+  },
+  {
+   "label": "Донистан",
+   "accuracy": 0.4
+  },
+  {
+   "label": "Нон",
+   "accuracy": 0.8
+  },
+  {
+   "label": "Пул",
+   "accuracy": 0.2
+  },
+  {
+   "label": "Мағоза",
+   "accuracy": 0.2
+  },
+  {
+   "label": "Дирӯз",
+   "accuracy": 0.4
+  },
+  {
+   "label": "Саҳар",
+   "accuracy": 1.0
+  },
+  {
+   "label": "Бегоҳ",
+   "accuracy": 0.6
+  },
+  {
+   "label": "Бародар",
+   "accuracy": 1.0
+  },
+  {
+   "label": "Хоҳар",
+   "accuracy": 1.0
+  },
+  {
+   "label": "Оила",
+   "accuracy": 0.8
+  },
+  {
+   "label": "Китоб",
+   "accuracy": 0.8
+  },
+  {
+   "label": "Хондан",
+   "accuracy": 0.8
+  },
+  {
+   "label": "Навиштан",
+   "accuracy": 0.8
+  },
+  {
+   "label": "Гап задан",
+   "accuracy": 0.6
+  },
+  {
+   "label": "Шаҳр",
+   "accuracy": 0.2
+  },
+  {
+   "label": "Харидан",
+   "accuracy": 0.6
+  },
+  {
+   "label": "Кай",
+   "accuracy": 0.4
+  },
+  {
+   "label": "Кӣ",
+   "accuracy": 1.0
+  },
+  {
+   "label": "Калон",
+   "accuracy": 0.2
+  },
+  {
+   "label": "Хурд",
+   "accuracy": 0.8
+  },
+  {
+   "label": "Писар",
+   "accuracy": 0.6
+  },
+  {
+   "label": "Духтар",
+   "accuracy": 0.6
   },
   {
    "label": "__none__",
@@ -138,379 +258,409 @@
   "Имрӯз": 5,
   "Фардо": 5,
   "Хӯрок": 5,
+  "Футбол": 5,
+  "Бозӣ кардан": 5,
+  "Кор кардан": 5,
+  "Хӯрдан": 5,
+  "Нӯшидан": 5,
+  "Хобидан": 5,
+  "Рафтан": 4,
+  "Дӯст доштан": 5,
+  "Донистан": 5,
+  "Нон": 5,
+  "Пул": 5,
+  "Мағоза": 5,
+  "Дирӯз": 5,
+  "Саҳар": 5,
+  "Бегоҳ": 5,
+  "Бародар": 5,
+  "Хоҳар": 5,
+  "Оила": 5,
+  "Китоб": 5,
+  "Хондан": 5,
+  "Навиштан": 5,
+  "Гап задан": 5,
+  "Шаҳр": 5,
+  "Харидан": 5,
+  "Кай": 5,
+  "Кӣ": 5,
+  "Калон": 5,
+  "Хурд": 5,
+  "Писар": 5,
+  "Духтар": 5,
   "__none__": 0
  },
  "confused": [
+  {
+   "a": "Не",
+   "b": "__none__",
+   "share": 0.8
+  },
+  {
+   "a": "Мағоза",
+   "b": "__none__",
+   "share": 0.8
+  },
   {
    "a": "Чӣ",
    "b": "__none__",
    "share": 0.6
   },
   {
-   "a": "Не",
-   "b": "__none__",
-   "share": 0.4
-  },
-  {
-   "a": "Хуб",
-   "b": "Ёрӣ додан",
-   "share": 0.4
-  },
-  {
-   "a": "Модар",
-   "b": "__none__",
-   "share": 0.4
-  },
-  {
-   "a": "Падар",
-   "b": "__none__",
-   "share": 0.4
-  },
-  {
-   "a": "Мо",
-   "b": "__none__",
-   "share": 0.4
-  },
-  {
-   "a": "Мактаб",
-   "b": "__none__",
-   "share": 0.4
-  },
-  {
    "a": "Чаро",
    "b": "__none__",
-   "share": 0.4
+   "share": 0.6
+  },
+  {
+   "a": "Хӯрдан",
+   "b": "__none__",
+   "share": 0.6
+  },
+  {
+   "a": "Нӯшидан",
+   "b": "__none__",
+   "share": 0.6
+  },
+  {
+   "a": "Хобидан",
+   "b": "__none__",
+   "share": 0.6
+  },
+  {
+   "a": "Рафтан",
+   "b": "__none__",
+   "share": 0.75
   }
  ],
  "rejection": {
   "accept": 0.6,
   "words": {
-   "accuracy": 0.64,
-   "acceptedCorrect": 0.592,
-   "acceptedWrong": 0.12,
-   "missed": 0.288
+   "accuracy": 0.5949,
+   "acceptedCorrect": 0.573,
+   "acceptedWrong": 0.1095,
+   "missed": 0.3175
   },
   "otherNewPeople": {
    "n": 240,
-   "falseAccept": 0.1292
+   "falseAccept": 0.2292
   },
   "heldout": {
    "n": 120,
-   "falseAccept": 0.1417
+   "falseAccept": 0.2667
   },
   "before": {
    "words": {
-    "accuracy": 0.744,
-    "acceptedCorrect": 0.72,
-    "acceptedWrong": 0.192,
-    "missed": 0.088
+    "accuracy": 0.6898,
+    "acceptedCorrect": 0.6679,
+    "acceptedWrong": 0.2372,
+    "missed": 0.0949
    },
    "heldout": {
     "n": 120,
-    "falseAccept": 0.8333
+    "falseAccept": 0.8167
    }
   }
  },
  "curve": [
   {
    "epoch": 1,
-   "train": 0.7131,
-   "test": 0.496
+   "train": 0.6387,
+   "test": 0.4307
   },
   {
    "epoch": 2,
-   "train": 0.9196,
-   "test": 0.592
+   "train": 0.8066,
+   "test": 0.5255
   },
   {
    "epoch": 3,
-   "train": 0.9223,
-   "test": 0.616
+   "train": 0.899,
+   "test": 0.5657
   },
   {
    "epoch": 4,
-   "train": 0.9625,
-   "test": 0.648
+   "train": 0.9209,
+   "test": 0.5766
   },
   {
    "epoch": 5,
-   "train": 0.992,
-   "test": 0.664
+   "train": 0.9623,
+   "test": 0.5693
   },
   {
    "epoch": 6,
-   "train": 0.992,
-   "test": 0.656
+   "train": 0.9623,
+   "test": 0.6314
   },
   {
    "epoch": 7,
-   "train": 0.992,
-   "test": 0.704
+   "train": 0.9659,
+   "test": 0.6314
   },
   {
    "epoch": 8,
-   "train": 0.9973,
-   "test": 0.688
+   "train": 0.9854,
+   "test": 0.6314
   },
   {
    "epoch": 9,
-   "train": 0.9973,
-   "test": 0.648
+   "train": 0.9891,
+   "test": 0.6533
   },
   {
    "epoch": 10,
-   "train": 0.9866,
-   "test": 0.608
+   "train": 0.9988,
+   "test": 0.6642
   },
   {
    "epoch": 11,
-   "train": 0.9786,
-   "test": 0.624
+   "train": 0.9903,
+   "test": 0.6277
   },
   {
    "epoch": 12,
-   "train": 0.9866,
-   "test": 0.672
+   "train": 0.9951,
+   "test": 0.6423
   },
   {
    "epoch": 13,
-   "train": 0.992,
-   "test": 0.648
+   "train": 0.9878,
+   "test": 0.6934
   },
   {
    "epoch": 14,
-   "train": 0.9973,
-   "test": 0.68
+   "train": 0.9988,
+   "test": 0.6496
   },
   {
    "epoch": 15,
-   "train": 1.0,
-   "test": 0.688
+   "train": 0.9988,
+   "test": 0.6496
   },
   {
    "epoch": 16,
-   "train": 0.9973,
-   "test": 0.68
+   "train": 0.9988,
+   "test": 0.6496
   },
   {
    "epoch": 17,
-   "train": 1.0,
-   "test": 0.68
+   "train": 0.9915,
+   "test": 0.6204
   },
   {
    "epoch": 18,
-   "train": 0.9946,
-   "test": 0.648
+   "train": 0.9951,
+   "test": 0.6168
   },
   {
    "epoch": 19,
-   "train": 1.0,
-   "test": 0.672
+   "train": 0.9964,
+   "test": 0.6569
   },
   {
    "epoch": 20,
-   "train": 0.9973,
-   "test": 0.672
+   "train": 0.9951,
+   "test": 0.6569
   },
   {
    "epoch": 21,
-   "train": 1.0,
-   "test": 0.64
+   "train": 0.9866,
+   "test": 0.6131
   },
   {
    "epoch": 22,
    "train": 1.0,
-   "test": 0.648
+   "test": 0.6423
   },
   {
    "epoch": 23,
    "train": 1.0,
-   "test": 0.672
+   "test": 0.6642
   },
   {
    "epoch": 24,
-   "train": 1.0,
-   "test": 0.672
+   "train": 0.9988,
+   "test": 0.6387
   },
   {
    "epoch": 25,
-   "train": 0.992,
-   "test": 0.656
+   "train": 1.0,
+   "test": 0.6423
   },
   {
    "epoch": 26,
-   "train": 0.9973,
-   "test": 0.632
+   "train": 1.0,
+   "test": 0.6569
   },
   {
    "epoch": 27,
-   "train": 0.9973,
-   "test": 0.664
+   "train": 0.9964,
+   "test": 0.6496
   },
   {
    "epoch": 28,
-   "train": 0.9973,
-   "test": 0.64
+   "train": 0.9891,
+   "test": 0.5985
   },
   {
    "epoch": 29,
    "train": 1.0,
-   "test": 0.648
+   "test": 0.6168
   },
   {
    "epoch": 30,
-   "train": 1.0,
-   "test": 0.68
+   "train": 0.9951,
+   "test": 0.6204
   },
   {
    "epoch": 31,
-   "train": 1.0,
-   "test": 0.664
+   "train": 0.9988,
+   "test": 0.635
   },
   {
    "epoch": 32,
    "train": 1.0,
-   "test": 0.704
+   "test": 0.6095
   },
   {
    "epoch": 33,
    "train": 1.0,
-   "test": 0.656
+   "test": 0.635
   },
   {
    "epoch": 34,
    "train": 1.0,
-   "test": 0.608
+   "test": 0.6387
   },
   {
    "epoch": 35,
-   "train": 1.0,
-   "test": 0.616
+   "train": 0.9964,
+   "test": 0.6131
   },
   {
    "epoch": 36,
    "train": 1.0,
-   "test": 0.664
+   "test": 0.6496
   },
   {
    "epoch": 37,
    "train": 1.0,
-   "test": 0.648
+   "test": 0.6277
   },
   {
    "epoch": 38,
    "train": 1.0,
-   "test": 0.64
+   "test": 0.635
   },
   {
    "epoch": 39,
    "train": 1.0,
-   "test": 0.632
+   "test": 0.6241
   },
   {
    "epoch": 40,
    "train": 1.0,
-   "test": 0.672
+   "test": 0.6022
   },
   {
    "epoch": 41,
    "train": 1.0,
-   "test": 0.64
+   "test": 0.6314
   },
   {
    "epoch": 42,
    "train": 1.0,
-   "test": 0.64
+   "test": 0.6095
   },
   {
    "epoch": 43,
    "train": 1.0,
-   "test": 0.632
+   "test": 0.6095
   },
   {
    "epoch": 44,
    "train": 1.0,
-   "test": 0.624
+   "test": 0.6022
   },
   {
    "epoch": 45,
    "train": 1.0,
-   "test": 0.624
+   "test": 0.6095
   },
   {
    "epoch": 46,
    "train": 1.0,
-   "test": 0.656
+   "test": 0.6168
   },
   {
    "epoch": 47,
    "train": 1.0,
-   "test": 0.624
+   "test": 0.6168
   },
   {
    "epoch": 48,
    "train": 1.0,
-   "test": 0.64
+   "test": 0.5912
   },
   {
    "epoch": 49,
    "train": 1.0,
-   "test": 0.6
+   "test": 0.6131
   },
   {
    "epoch": 50,
    "train": 1.0,
-   "test": 0.632
+   "test": 0.5985
   },
   {
    "epoch": 51,
    "train": 1.0,
-   "test": 0.616
+   "test": 0.5912
   },
   {
    "epoch": 52,
    "train": 1.0,
-   "test": 0.64
+   "test": 0.6022
   },
   {
    "epoch": 53,
    "train": 1.0,
-   "test": 0.632
+   "test": 0.6058
   },
   {
    "epoch": 54,
    "train": 1.0,
-   "test": 0.64
+   "test": 0.5839
   },
   {
    "epoch": 55,
    "train": 1.0,
-   "test": 0.632
+   "test": 0.5949
   },
   {
    "epoch": 56,
    "train": 1.0,
-   "test": 0.624
+   "test": 0.5949
   },
   {
    "epoch": 57,
    "train": 1.0,
-   "test": 0.64
+   "test": 0.6058
   },
   {
    "epoch": 58,
    "train": 1.0,
-   "test": 0.624
+   "test": 0.5985
   },
   {
    "epoch": 59,
    "train": 1.0,
-   "test": 0.608
+   "test": 0.6095
   },
   {
    "epoch": 60,
    "train": 1.0,
-   "test": 0.64
+   "test": 0.5949
   }
  ],
  "vocabulary": [
@@ -662,6 +812,186 @@
    "label": "Хӯрок",
    "ru": "Еда",
    "slovo": "еда",
+   "note": ""
+  },
+  {
+   "label": "Футбол",
+   "ru": "Футбол",
+   "slovo": "Футбол",
+   "note": ""
+  },
+  {
+   "label": "Бозӣ кардан",
+   "ru": "Играть",
+   "slovo": "играть",
+   "note": ""
+  },
+  {
+   "label": "Кор кардан",
+   "ru": "Работать",
+   "slovo": "работать",
+   "note": ""
+  },
+  {
+   "label": "Хӯрдан",
+   "ru": "Есть",
+   "slovo": "есть",
+   "note": ""
+  },
+  {
+   "label": "Нӯшидан",
+   "ru": "Пить",
+   "slovo": "пить",
+   "note": ""
+  },
+  {
+   "label": "Хобидан",
+   "ru": "Спать",
+   "slovo": "спать",
+   "note": ""
+  },
+  {
+   "label": "Рафтан",
+   "ru": "Идти",
+   "slovo": "идти",
+   "note": ""
+  },
+  {
+   "label": "Дӯст доштан",
+   "ru": "Любить",
+   "slovo": "любить",
+   "note": ""
+  },
+  {
+   "label": "Донистан",
+   "ru": "Знать",
+   "slovo": "знать",
+   "note": ""
+  },
+  {
+   "label": "Нон",
+   "ru": "Хлеб",
+   "slovo": "хлеб",
+   "note": ""
+  },
+  {
+   "label": "Пул",
+   "ru": "Деньги",
+   "slovo": "деньги",
+   "note": ""
+  },
+  {
+   "label": "Мағоза",
+   "ru": "Магазин",
+   "slovo": "магазин",
+   "note": ""
+  },
+  {
+   "label": "Дирӯз",
+   "ru": "Вчера",
+   "slovo": "вчера",
+   "note": ""
+  },
+  {
+   "label": "Саҳар",
+   "ru": "Утро",
+   "slovo": "утро",
+   "note": ""
+  },
+  {
+   "label": "Бегоҳ",
+   "ru": "Вечер",
+   "slovo": "вечер",
+   "note": ""
+  },
+  {
+   "label": "Бародар",
+   "ru": "Брат",
+   "slovo": "брат",
+   "note": ""
+  },
+  {
+   "label": "Хоҳар",
+   "ru": "Сестра",
+   "slovo": "сестра",
+   "note": ""
+  },
+  {
+   "label": "Оила",
+   "ru": "Семья",
+   "slovo": "семья",
+   "note": ""
+  },
+  {
+   "label": "Китоб",
+   "ru": "Книга",
+   "slovo": "книга",
+   "note": ""
+  },
+  {
+   "label": "Хондан",
+   "ru": "Читать",
+   "slovo": "читать",
+   "note": ""
+  },
+  {
+   "label": "Навиштан",
+   "ru": "Писать",
+   "slovo": "писать",
+   "note": ""
+  },
+  {
+   "label": "Гап задан",
+   "ru": "Говорить",
+   "slovo": "говорить",
+   "note": ""
+  },
+  {
+   "label": "Шаҳр",
+   "ru": "Город",
+   "slovo": "город",
+   "note": ""
+  },
+  {
+   "label": "Харидан",
+   "ru": "Купить",
+   "slovo": "купить",
+   "note": ""
+  },
+  {
+   "label": "Кай",
+   "ru": "Когда",
+   "slovo": "когда",
+   "note": ""
+  },
+  {
+   "label": "Кӣ",
+   "ru": "Кто",
+   "slovo": "кто?",
+   "note": ""
+  },
+  {
+   "label": "Калон",
+   "ru": "Большой",
+   "slovo": "большой",
+   "note": ""
+  },
+  {
+   "label": "Хурд",
+   "ru": "Маленький",
+   "slovo": "маленький",
+   "note": ""
+  },
+  {
+   "label": "Писар",
+   "ru": "Мальчик",
+   "slovo": "мальчик",
+   "note": ""
+  },
+  {
+   "label": "Духтар",
+   "ru": "Девочка",
+   "slovo": "девочка",
    "note": ""
   },
   {
