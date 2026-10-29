@@ -85,7 +85,7 @@ export class ModelView {
       ? new Date(meta.trainedAt).toLocaleDateString(getLang() === 'ru' ? 'ru-RU' : 'tg-TJ')
       : '';
     $('mSource').textContent = t(`model.source.${meta.source}`, { n: words, date, version: meta.version });
-    $('mArch').textContent = t('model.p4.arch', { n: meta.labels.length });
+    $('mArch').textContent = t('model.p4.arch', { n: meta.labels.length, arch: this.classifier.architecture });
 
     const facts = [{ value: words, label: t('model.fact.words') }];
     if (base && metrics) {

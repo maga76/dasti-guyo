@@ -1,15 +1,15 @@
 {
- "createdAt": "2026-10-29T12:46:08.680649+00:00",
+ "createdAt": "2026-10-29T14:14:05.942908+00:00",
  "source": "Slovo (SberDevices), русский жестовый язык, CC BY-SA 4.0",
  "classes": 56,
  "samples": 2176,
  "signersTrain": 40,
  "signersTest": 72,
- "testAccuracy": 0.5949,
+ "testAccuracy": 0.6569,
  "perClass": [
   {
    "label": "Салом",
-   "accuracy": 0.6
+   "accuracy": 0.8
   },
   {
    "label": "Хайр",
@@ -33,7 +33,7 @@
   },
   {
    "label": "Ёрӣ додан",
-   "accuracy": 0.6
+   "accuracy": 0.8
   },
   {
    "label": "Об",
@@ -45,15 +45,15 @@
   },
   {
    "label": "Модар",
-   "accuracy": 0.6
+   "accuracy": 0.8
   },
   {
    "label": "Падар",
-   "accuracy": 0.4
+   "accuracy": 0.8
   },
   {
    "label": "Дӯст",
-   "accuracy": 0.6
+   "accuracy": 1.0
   },
   {
    "label": "Ман",
@@ -65,7 +65,7 @@
   },
   {
    "label": "Мо",
-   "accuracy": 0.4
+   "accuracy": 0.6
   },
   {
    "label": "Хона",
@@ -85,7 +85,7 @@
   },
   {
    "label": "Чаро",
-   "accuracy": 0.4
+   "accuracy": 0.8
   },
   {
    "label": "Хостан",
@@ -97,11 +97,11 @@
   },
   {
    "label": "Имрӯз",
-   "accuracy": 0.8
+   "accuracy": 1.0
   },
   {
    "label": "Фардо",
-   "accuracy": 0.2
+   "accuracy": 0.4
   },
   {
    "label": "Хӯрок",
@@ -109,7 +109,7 @@
   },
   {
    "label": "Футбол",
-   "accuracy": 1.0
+   "accuracy": 0.8
   },
   {
    "label": "Бозӣ кардан",
@@ -129,11 +129,11 @@
   },
   {
    "label": "Хобидан",
-   "accuracy": 0.4
+   "accuracy": 0.6
   },
   {
    "label": "Рафтан",
-   "accuracy": 0.25
+   "accuracy": 0.5
   },
   {
    "label": "Дӯст доштан",
@@ -141,11 +141,11 @@
   },
   {
    "label": "Донистан",
-   "accuracy": 0.4
+   "accuracy": 0.2
   },
   {
    "label": "Нон",
-   "accuracy": 0.8
+   "accuracy": 0.6
   },
   {
    "label": "Пул",
@@ -153,11 +153,11 @@
   },
   {
    "label": "Мағоза",
-   "accuracy": 0.2
+   "accuracy": 0.6
   },
   {
    "label": "Дирӯз",
-   "accuracy": 0.4
+   "accuracy": 0.6
   },
   {
    "label": "Саҳар",
@@ -165,7 +165,7 @@
   },
   {
    "label": "Бегоҳ",
-   "accuracy": 0.6
+   "accuracy": 1.0
   },
   {
    "label": "Бародар",
@@ -185,7 +185,7 @@
   },
   {
    "label": "Хондан",
-   "accuracy": 0.8
+   "accuracy": 1.0
   },
   {
    "label": "Навиштан",
@@ -197,11 +197,11 @@
   },
   {
    "label": "Шаҳр",
-   "accuracy": 0.2
+   "accuracy": 0.4
   },
   {
    "label": "Харидан",
-   "accuracy": 0.6
+   "accuracy": 0.8
   },
   {
    "label": "Кай",
@@ -209,7 +209,7 @@
   },
   {
    "label": "Кӣ",
-   "accuracy": 1.0
+   "accuracy": 0.8
   },
   {
    "label": "Калон",
@@ -225,7 +225,7 @@
   },
   {
    "label": "Духтар",
-   "accuracy": 0.6
+   "accuracy": 0.4
   },
   {
    "label": "__none__",
@@ -292,14 +292,24 @@
  },
  "confused": [
   {
-   "a": "Не",
+   "a": "Нӯшидан",
    "b": "__none__",
    "share": 0.8
   },
   {
-   "a": "Мағоза",
+   "a": "Калон",
    "b": "__none__",
    "share": 0.8
+  },
+  {
+   "a": "Ҳа",
+   "b": "__none__",
+   "share": 0.6
+  },
+  {
+   "a": "Не",
+   "b": "__none__",
+   "share": 0.6
   },
   {
    "a": "Чӣ",
@@ -307,360 +317,200 @@
    "share": 0.6
   },
   {
-   "a": "Чаро",
+   "a": "Шаҳр",
    "b": "__none__",
    "share": 0.6
   },
   {
-   "a": "Хӯрдан",
-   "b": "__none__",
-   "share": 0.6
+   "a": "Хайр",
+   "b": "Писар",
+   "share": 0.4
   },
   {
-   "a": "Нӯшидан",
-   "b": "__none__",
-   "share": 0.6
-  },
-  {
-   "a": "Хобидан",
-   "b": "__none__",
-   "share": 0.6
-  },
-  {
-   "a": "Рафтан",
-   "b": "__none__",
-   "share": 0.75
+   "a": "Ман",
+   "b": "Хостан",
+   "share": 0.4
   }
  ],
  "rejection": {
   "accept": 0.6,
   "words": {
-   "accuracy": 0.5949,
-   "acceptedCorrect": 0.573,
-   "acceptedWrong": 0.1095,
-   "missed": 0.3175
+   "accuracy": 0.6569,
+   "acceptedCorrect": 0.5912,
+   "acceptedWrong": 0.0949,
+   "missed": 0.3139
   },
   "otherNewPeople": {
    "n": 240,
-   "falseAccept": 0.2292
+   "falseAccept": 0.2042
   },
   "heldout": {
    "n": 120,
-   "falseAccept": 0.2667
+   "falseAccept": 0.3167
   },
   "before": {
    "words": {
-    "accuracy": 0.6898,
-    "acceptedCorrect": 0.6679,
-    "acceptedWrong": 0.2372,
-    "missed": 0.0949
+    "accuracy": 0.6971,
+    "acceptedCorrect": 0.6387,
+    "acceptedWrong": 0.1715,
+    "missed": 0.1898
    },
    "heldout": {
     "n": 120,
-    "falseAccept": 0.8167
+    "falseAccept": 0.7583
    }
   }
  },
  "curve": [
   {
    "epoch": 1,
-   "train": 0.6387,
-   "test": 0.4307
-  },
-  {
-   "epoch": 2,
-   "train": 0.8066,
+   "train": 0.7421,
    "test": 0.5255
   },
   {
+   "epoch": 2,
+   "train": 0.8613,
+   "test": 0.5803
+  },
+  {
    "epoch": 3,
-   "train": 0.899,
-   "test": 0.5657
+   "train": 0.9526,
+   "test": 0.6095
   },
   {
    "epoch": 4,
-   "train": 0.9209,
-   "test": 0.5766
-  },
-  {
-   "epoch": 5,
-   "train": 0.9623,
-   "test": 0.5693
-  },
-  {
-   "epoch": 6,
-   "train": 0.9623,
-   "test": 0.6314
-  },
-  {
-   "epoch": 7,
-   "train": 0.9659,
-   "test": 0.6314
-  },
-  {
-   "epoch": 8,
-   "train": 0.9854,
-   "test": 0.6314
-  },
-  {
-   "epoch": 9,
-   "train": 0.9891,
+   "train": 0.9586,
    "test": 0.6533
   },
   {
+   "epoch": 5,
+   "train": 0.9732,
+   "test": 0.6314
+  },
+  {
+   "epoch": 6,
+   "train": 0.9684,
+   "test": 0.6533
+  },
+  {
+   "epoch": 7,
+   "train": 0.9854,
+   "test": 0.6606
+  },
+  {
+   "epoch": 8,
+   "train": 0.9708,
+   "test": 0.6022
+  },
+  {
+   "epoch": 9,
+   "train": 0.9927,
+   "test": 0.6204
+  },
+  {
    "epoch": 10,
-   "train": 0.9988,
-   "test": 0.6642
+   "train": 0.9854,
+   "test": 0.6569
   },
   {
    "epoch": 11,
    "train": 0.9903,
-   "test": 0.6277
+   "test": 0.6241
   },
   {
    "epoch": 12,
-   "train": 0.9951,
-   "test": 0.6423
+   "train": 0.9903,
+   "test": 0.646
   },
   {
    "epoch": 13,
-   "train": 0.9878,
-   "test": 0.6934
+   "train": 0.9976,
+   "test": 0.6861
   },
   {
    "epoch": 14,
-   "train": 0.9988,
-   "test": 0.6496
+   "train": 0.9976,
+   "test": 0.6606
   },
   {
    "epoch": 15,
-   "train": 0.9988,
-   "test": 0.6496
+   "train": 0.9951,
+   "test": 0.6387
   },
   {
    "epoch": 16,
-   "train": 0.9988,
-   "test": 0.6496
+   "train": 1.0,
+   "test": 0.6569
   },
   {
    "epoch": 17,
-   "train": 0.9915,
-   "test": 0.6204
+   "train": 1.0,
+   "test": 0.6752
   },
   {
    "epoch": 18,
-   "train": 0.9951,
-   "test": 0.6168
+   "train": 0.9988,
+   "test": 0.6861
   },
   {
    "epoch": 19,
-   "train": 0.9964,
-   "test": 0.6569
-  },
-  {
-   "epoch": 20,
-   "train": 0.9951,
-   "test": 0.6569
-  },
-  {
-   "epoch": 21,
-   "train": 0.9866,
-   "test": 0.6131
-  },
-  {
-   "epoch": 22,
-   "train": 1.0,
-   "test": 0.6423
-  },
-  {
-   "epoch": 23,
    "train": 1.0,
    "test": 0.6642
   },
   {
+   "epoch": 20,
+   "train": 0.9988,
+   "test": 0.6642
+  },
+  {
+   "epoch": 21,
+   "train": 0.9976,
+   "test": 0.6679
+  },
+  {
+   "epoch": 22,
+   "train": 1.0,
+   "test": 0.6679
+  },
+  {
+   "epoch": 23,
+   "train": 1.0,
+   "test": 0.6934
+  },
+  {
    "epoch": 24,
    "train": 0.9988,
-   "test": 0.6387
+   "test": 0.6788
   },
   {
    "epoch": 25,
    "train": 1.0,
-   "test": 0.6423
+   "test": 0.6642
   },
   {
    "epoch": 26,
    "train": 1.0,
-   "test": 0.6569
+   "test": 0.6825
   },
   {
    "epoch": 27,
-   "train": 0.9964,
-   "test": 0.6496
+   "train": 1.0,
+   "test": 0.6752
   },
   {
    "epoch": 28,
-   "train": 0.9891,
-   "test": 0.5985
+   "train": 1.0,
+   "test": 0.6825
   },
   {
    "epoch": 29,
    "train": 1.0,
-   "test": 0.6168
+   "test": 0.6752
   },
   {
    "epoch": 30,
-   "train": 0.9951,
-   "test": 0.6204
-  },
-  {
-   "epoch": 31,
-   "train": 0.9988,
-   "test": 0.635
-  },
-  {
-   "epoch": 32,
    "train": 1.0,
-   "test": 0.6095
-  },
-  {
-   "epoch": 33,
-   "train": 1.0,
-   "test": 0.635
-  },
-  {
-   "epoch": 34,
-   "train": 1.0,
-   "test": 0.6387
-  },
-  {
-   "epoch": 35,
-   "train": 0.9964,
-   "test": 0.6131
-  },
-  {
-   "epoch": 36,
-   "train": 1.0,
-   "test": 0.6496
-  },
-  {
-   "epoch": 37,
-   "train": 1.0,
-   "test": 0.6277
-  },
-  {
-   "epoch": 38,
-   "train": 1.0,
-   "test": 0.635
-  },
-  {
-   "epoch": 39,
-   "train": 1.0,
-   "test": 0.6241
-  },
-  {
-   "epoch": 40,
-   "train": 1.0,
-   "test": 0.6022
-  },
-  {
-   "epoch": 41,
-   "train": 1.0,
-   "test": 0.6314
-  },
-  {
-   "epoch": 42,
-   "train": 1.0,
-   "test": 0.6095
-  },
-  {
-   "epoch": 43,
-   "train": 1.0,
-   "test": 0.6095
-  },
-  {
-   "epoch": 44,
-   "train": 1.0,
-   "test": 0.6022
-  },
-  {
-   "epoch": 45,
-   "train": 1.0,
-   "test": 0.6095
-  },
-  {
-   "epoch": 46,
-   "train": 1.0,
-   "test": 0.6168
-  },
-  {
-   "epoch": 47,
-   "train": 1.0,
-   "test": 0.6168
-  },
-  {
-   "epoch": 48,
-   "train": 1.0,
-   "test": 0.5912
-  },
-  {
-   "epoch": 49,
-   "train": 1.0,
-   "test": 0.6131
-  },
-  {
-   "epoch": 50,
-   "train": 1.0,
-   "test": 0.5985
-  },
-  {
-   "epoch": 51,
-   "train": 1.0,
-   "test": 0.5912
-  },
-  {
-   "epoch": 52,
-   "train": 1.0,
-   "test": 0.6022
-  },
-  {
-   "epoch": 53,
-   "train": 1.0,
-   "test": 0.6058
-  },
-  {
-   "epoch": 54,
-   "train": 1.0,
-   "test": 0.5839
-  },
-  {
-   "epoch": 55,
-   "train": 1.0,
-   "test": 0.5949
-  },
-  {
-   "epoch": 56,
-   "train": 1.0,
-   "test": 0.5949
-  },
-  {
-   "epoch": 57,
-   "train": 1.0,
-   "test": 0.6058
-  },
-  {
-   "epoch": 58,
-   "train": 1.0,
-   "test": 0.5985
-  },
-  {
-   "epoch": 59,
-   "train": 1.0,
-   "test": 0.6095
-  },
-  {
-   "epoch": 60,
-   "train": 1.0,
-   "test": 0.5949
+   "test": 0.6569
   }
  ],
  "vocabulary": [

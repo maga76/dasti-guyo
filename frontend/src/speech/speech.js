@@ -187,6 +187,30 @@ async function fromServer(text) {
   }
 }
 
+const serverUrls = new Map(); // голос|текст → Promise<blob-адрес|null>
+
+/** Голос с сервера — один раз на текст (повтор и заранее подготовленный текст звучат сразу). */
+function serverUrl(text) {
+  const k = `${getVoice()}|${normalize(text)}`;
+  if (!serverUrls.has(k)) {
+    const promise = fromServer(text);
+    serverUrls.set(k, promise);
+    promise.then((url) => url || serverUrls.delete(k));
+  }
+  return serverUrls.get(k);
+}
+
+/**
+ * Подготовить голос для текста заранее (готовый файл или сервер), не произнося.
+ * Нужно для предложений: пока человек опускает руки, сервер уже озвучивает фразу.
+ */
+export function preloadText(text) {
+  if (!text?.trim()) return;
+  fileUrl(text)
+    .then((file) => file || serverUrl(text))
+    .catch(() => {});
+}
+
 /**
  * Произносит текст.
  * @param {{rate?: number}} [opts] rate — скорость (0.7 — медленно, для тренажёра произношения)
@@ -198,7 +222,7 @@ export async function speak(text, { rate = 1 } = {}) {
   const file = await fileUrl(text);
   if (file && (await playUrl(file, rate))) return 'file';
 
-  const url = await fromServer(text);
+  const url = await serverUrl(text);
   if (url && (await playUrl(url, rate))) return 'server';
 
   const found = await browserVoice();

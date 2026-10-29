@@ -85,6 +85,13 @@ export class GestureClassifier {
     this.input = new Float32Array(INPUT_SIZE);
   }
 
+  /** Устройство сети для «Об ИИ»: «2112 → 512 → 256 → 56» (из загруженной модели). */
+  get architecture() {
+    if (!this.model) return '';
+    const units = this.model.layers.map((l) => l.units).filter(Boolean);
+    return [INPUT_SIZE, ...units].join(' → ');
+  }
+
   get isReady() {
     return Boolean(this.model);
   }

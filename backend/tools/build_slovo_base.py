@@ -124,7 +124,9 @@ WORDS = {
     "девочка": ("Духтар", "Девочка", ""),
 }
 
-EPOCHS = 60
+# Подобрано на людях из test (tune): после ~30 эпох модель начинает заучивать записи
+# (на 60 эпохах — 59.5% на новых людях, на 30 с сетью 512→256 и alpha 0.03 — 66.4%)
+EPOCHS = 30
 AUG_PER_EPOCH = 4  # случайных копий каждой записи на эпоху
 STORED_FRAMES = 32  # сколько кадров записи хранить для браузера
 SCALE = 1000  # числа хранятся как int16 × 1000
@@ -286,7 +288,7 @@ def make_xy(samples, rng, augmented: bool):
 
 
 def new_model():
-    return MLPClassifier(hidden_layer_sizes=(256, 128), alpha=1e-3, batch_size=64, learning_rate_init=1e-3, random_state=0)
+    return MLPClassifier(hidden_layer_sizes=(512, 256), alpha=3e-2, batch_size=64, learning_rate_init=1e-3, random_state=0)
 
 
 def epoch_xy(words, others, rng):

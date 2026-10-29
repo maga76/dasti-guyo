@@ -13,7 +13,7 @@
       "name": "dense_1",
       "trainable": true,
       "dtype": "float32",
-      "units": 256,
+      "units": 512,
       "activation": "relu",
       "use_bias": true,
       "kernel_initializer": {
@@ -41,7 +41,7 @@
       "name": "dense_2",
       "trainable": true,
       "dtype": "float32",
-      "units": 128,
+      "units": 256,
       "activation": "relu",
       "use_bias": true,
       "kernel_initializer": {
@@ -98,36 +98,36 @@
      "name": "dense_1/kernel",
      "shape": [
       2112,
-      256
+      512
      ],
      "dtype": "float32"
     },
     {
      "name": "dense_1/bias",
      "shape": [
-      256
+      512
      ],
      "dtype": "float32"
     },
     {
      "name": "dense_2/kernel",
      "shape": [
-      256,
-      128
+      512,
+      256
      ],
      "dtype": "float32"
     },
     {
      "name": "dense_2/bias",
      "shape": [
-      128
+      256
      ],
      "dtype": "float32"
     },
     {
      "name": "dense_3/kernel",
      "shape": [
-      128,
+      256,
       56
      ],
      "dtype": "float32"

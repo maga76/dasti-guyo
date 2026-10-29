@@ -15,7 +15,7 @@ import { completeSentence } from '../dataset/grammar.js';
 import { labelName } from './trainView.js';
 import { SignDemo } from './signDemo.js';
 import { showBigText } from './bigText.js';
-import { preloadSpeech, speak, speakAndWait } from '../speech/speech.js';
+import { preloadSpeech, preloadText, speak, speakAndWait } from '../speech/speech.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -31,6 +31,8 @@ export const MIN_AGREE = 3;
 const MIN_GAP_MS = 800;
 // Человек опустил руки на столько — предложение готово: сайт произносит его целиком
 const SENTENCE_PAUSE_MS = 2500;
+// Голос предложения начинаем готовить заранее — через столько после последнего слова
+const SENTENCE_PRELOAD_MS = 600;
 
 function readSetting(key, fallback) {
   try {
@@ -220,9 +222,11 @@ export class TranslateView {
   /** После паузы в жестах — произнести готовое предложение целиком (если включён «Овоз»). */
   scheduleSentence() {
     clearTimeout(this.sentenceTimer);
+    clearTimeout(this.preloadTimer);
     if (this.words.length < 2 || !$('chkAutoSpeak').checked) return;
     const text = this.sentence().tj;
     if (text === this.spokenSentence) return;
+    this.preloadTimer = setTimeout(() => preloadText(text), SENTENCE_PRELOAD_MS);
     this.sentenceTimer = setTimeout(() => this.speakSentence(), SENTENCE_PAUSE_MS);
   }
 
