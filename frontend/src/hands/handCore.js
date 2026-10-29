@@ -12,8 +12,12 @@ import { config } from '../config.js';
 
 // Точки позы у кистей: запястье, мизинец, указательный, большой — левая (15…21) и правая (16…22)
 const POSE_HAND_POINTS = [15, 17, 19, 21, 16, 18, 20, 22];
-const POSE_EVERY = 3; // поза меняется медленнее кистей — достаточно каждого третьего кадра
-const POSE_MAX_AGE_MS = 600;
+// Поза нужна только для проверки новой руки; свежей считаем позу не старше этого
+const POSE_REFRESH_MS = 100;
+// Рука в новом кадре — та же, если её центр сдвинулся меньше чем на столько размеров ладони
+const MATCH_SIZES = 2.5;
+// Ведомая рука пропала — столько кадров показываем её последнее положение, а не обрываем
+const HOLD_FRAMES = 2;
 
 /**
  * @typedef {{x:number, y:number, z:number}} Point
@@ -66,7 +70,8 @@ export class HandCore {
     this.pose = null;
     /** @type {'GPU'|'CPU'|null} */
     this.delegate = null;
-    this.streak = { left: 0, right: 0 };
+    /** @type {{hand: Hand, streak: number, missed: number, accepted: boolean}[]} ведомые руки */
+    this.tracks = [];
   }
 
   /** Создаёт распознаватель: сначала GPU (быстрее), если не получилось — CPU. */
@@ -93,20 +98,19 @@ export class HandCore {
     });
   }
 
-  /** Последняя поза человека (обновляется каждые POSE_EVERY кадров) или null. */
+  /** Поза человека на этом кадре (или не старше POSE_REFRESH_MS) или null. */
   bodyPose(image, timestamp) {
     if (!this.pose) return null;
-    this.poseTick = (this.poseTick ?? 0) + 1;
-    if (this.poseTick % POSE_EVERY === 0) {
+    if (timestamp - (this.lastPoseAt ?? -Infinity) >= POSE_REFRESH_MS) {
       try {
         const result = this.pose.detectForVideo(image, timestamp);
         this.lastPose = result.landmarks?.[0] ?? null;
-        this.lastPoseAt = timestamp;
       } catch {
         this.lastPose = null;
       }
+      this.lastPoseAt = timestamp;
     }
-    return timestamp - (this.lastPoseAt ?? -Infinity) < POSE_MAX_AGE_MS ? this.lastPose : null;
+    return this.lastPose;
   }
 
   /**
@@ -134,23 +138,76 @@ export class HandCore {
         };
       })
       .filter((hand) => hand.score >= mp.minHandScore && looksLikeHand(hand.landmarks, aspect));
-    // Человек виден — кисть должна быть у его запястья (иначе это лицо, узор, предмет)
-    const body = hands.length ? this.bodyPose(image, timestamp) : null;
-    const real = body ? hands.filter((hand) => nearBodyHand(hand.landmarks, body, aspect)) : hands;
-    return this.stable(real);
+    // Позу считаем, только если есть новая рука, которую надо проверить: ведомым рукам она не нужна
+    return this.track(hands, aspect, () => this.bodyPose(image, timestamp));
   }
 
-  /** Рука «появилась», только если её видно stableFrames кадров подряд. */
-  stable(hands) {
-    for (const side of ['left', 'right']) {
-      this.streak[side] = hands.some((h) => h.side === side) ? this.streak[side] + 1 : 0;
+  /**
+   * Ведение рук от кадра к кадру — чтобы рука не «обрывалась»:
+   *   - найденная рука узнаётся по положению (а не по «левая/правая» — MediaPipe иногда путает их
+   *     на один кадр) и сохраняет свою сторону;
+   *   - НОВАЯ рука засчитывается, только если видна stableFrames кадров подряд и (когда виден
+   *     человек) находится у его запястья — так отсекаются лицо и узоры. Уже ведомую руку эти
+   *     проверки не выкидывают: при быстром жесте поза отстаёт, а рука смазывается;
+   *   - пропала на 1–2 кадра — показываем последнее положение (HOLD_FRAMES).
+   * @param {Hand[]} hands руки этого кадра
+   * @param {number} aspect
+   * @param {() => object[]|null} getBody поза человека (считается по требованию)
+   */
+  track(hands, aspect, getBody) {
+    const mp = config.mediapipe;
+    const center = (lm) => ({ x: (lm[0].x + lm[9].x) / 2, y: (lm[0].y + lm[9].y) / 2 });
+    const size = (lm) => Math.max(Math.hypot((lm[0].x - lm[9].x) * aspect, lm[0].y - lm[9].y), 0.04);
+    const dist = (a, b) => Math.hypot((a.x - b.x) * aspect, a.y - b.y);
+
+    // Сопоставить руки кадра с ведомыми: ближайшие пары по центру ладони
+    const pairs = [];
+    hands.forEach((hand, h) => {
+      const c = center(hand.landmarks);
+      this.tracks.forEach((track, t) => {
+        const d = dist(c, center(track.hand.landmarks));
+        if (d < MATCH_SIZES * Math.max(size(hand.landmarks), size(track.hand.landmarks))) pairs.push({ h, t, d });
+      });
+    });
+    pairs.sort((a, b) => a.d - b.d);
+    const usedHands = new Set();
+    const usedTracks = new Set();
+    for (const { h, t } of pairs) {
+      if (usedHands.has(h) || usedTracks.has(t)) continue;
+      usedHands.add(h);
+      usedTracks.add(t);
+      const track = this.tracks[t];
+      // Ведомая рука сохраняет сторону, новая — берёт ответ MediaPipe
+      track.hand = { ...hands[h], side: track.accepted ? track.hand.side : hands[h].side };
+      track.streak += 1;
+      track.missed = 0;
     }
-    return hands.filter((h) => this.streak[h.side] >= config.mediapipe.stableFrames);
+    // Пропавшие руки: держим немного, потом забываем
+    this.tracks = this.tracks.filter((track, t) => usedTracks.has(t) || ++track.missed <= (track.accepted ? HOLD_FRAMES : 0));
+    hands.forEach((hand, h) => {
+      if (!usedHands.has(h)) this.tracks.push({ hand, streak: 1, missed: 0, accepted: false });
+    });
+
+    // Новые руки, продержавшиеся stableFrames кадров, — проверка по позе тела
+    const candidates = this.tracks.filter((t) => !t.accepted && t.streak >= mp.stableFrames);
+    if (candidates.length) {
+      const body = getBody();
+      for (const track of candidates) {
+        if (!body || nearBodyHand(track.hand.landmarks, body, aspect)) track.accepted = true;
+      }
+    }
+
+    // Не больше двух рук и не две «левые»: вторая получает другую сторону
+    const shown = this.tracks.filter((t) => t.accepted).slice(0, 2);
+    if (shown.length === 2 && shown[0].hand.side === shown[1].hand.side) {
+      shown[1].hand = { ...shown[1].hand, side: shown[0].hand.side === 'left' ? 'right' : 'left' };
+    }
+    return shown.map((t) => t.hand);
   }
 
-  /** Новая серия кадров (камера включилась снова) — старые «подряд» не считаются. */
+  /** Новая серия кадров (камера включилась снова) — прежние руки забываем. */
   reset() {
-    this.streak = { left: 0, right: 0 };
+    this.tracks = [];
   }
 
   close() {

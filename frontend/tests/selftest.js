@@ -194,6 +194,34 @@ await check('Сборка предложений по правилам', async (
   return `правил в словаре: ${dict.phrases.length}, быстрых фраз: ${dict.quickPhrases.length}`;
 });
 
+await check('Руки не обрываются: ведение по положению, удержание, сторона не скачет', async () => {
+  const { HandCore } = await import('../src/hands/handCore.js');
+  // Рука-«звезда» вокруг точки (cx, cy): пропорции как у настоящей кисти
+  const hand = (cx, cy, side) => {
+    const lm = Array.from({ length: 21 }, (_, i) => {
+      const finger = Math.max(0, Math.ceil(i / 4) - 1);
+      const along = i === 0 ? 0 : ((i - 1) % 4) + 1;
+      return { x: cx + (finger - 2) * 0.012, y: cy + 0.05 - along * 0.022, z: 0 };
+    });
+    return { side, score: 0.9, landmarks: lm, world: [] };
+  };
+  const core = new HandCore();
+  const noBody = () => null;
+  const seen = (hands) => hands.map((h) => h.side).join(',') || '—';
+  const run = (frames, body = noBody) => frames.map((f) => seen(core.track(f, 4 / 3, body)));
+
+  // Новая рука — с третьего кадра; пропуск 1–2 кадров — держится; сторона не скачет
+  const a = run([[hand(0.5, 0.5, 'right')], [hand(0.5, 0.5, 'right')], [hand(0.51, 0.5, 'right')], [], [hand(0.52, 0.5, 'left')], [], [], []]);
+  assert(a.join(' ') === '— — right right right right right —', a.join(' '));
+
+  // Тело далеко от новой «руки» (лицо, узор) — не засчитывается
+  core.reset();
+  const farBody = () => Array.from({ length: 33 }, () => ({ x: 0.1, y: 0.9, z: 0 }));
+  const b = run([[hand(0.5, 0.3, 'right')], [hand(0.5, 0.3, 'right')], [hand(0.5, 0.3, 'right')]], farBody);
+  assert(b.join(' ') === '— — —', b.join(' '));
+  return 'появление, удержание, сторона, отсев по телу';
+});
+
 await check('Помощник предложения: глагол по лицу и времени, предлоги, вопрос', async () => {
   const { completeSentence } = await import('../src/dataset/grammar.js');
   const cases = [
