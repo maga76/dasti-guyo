@@ -1,4 +1,6 @@
 // Цикл распознавания: берёт новые кадры видео и передаёт их в HandTracker.
+// Кадр берётся ровно в момент его появления (requestVideoFrameCallback), а не «на следующей
+// перерисовке экрана»: меньше задержка и ни один кадр камеры не обрабатывается дважды.
 // Если распознавание медленное — анализирует не каждый кадр (пропуск кадров),
 // чтобы интерфейс не тормозил на слабых телефонах.
 
@@ -19,6 +21,8 @@ export class DetectionLoop {
 
     this.running = false;
     this.rafId = 0;
+    this.frameId = 0;
+    this.byVideoFrame = typeof video.requestVideoFrameCallback === 'function';
     this.lastVideoTime = -1;
     this.frameIndex = 0;
 
@@ -38,12 +42,18 @@ export class DetectionLoop {
     if (this.running) return;
     this.running = true;
     this.lastVideoTime = -1;
-    this.rafId = requestAnimationFrame(this.tick);
+    this.schedule();
+  }
+
+  schedule() {
+    if (this.byVideoFrame) this.frameId = this.video.requestVideoFrameCallback(this.tick);
+    else this.rafId = requestAnimationFrame(this.tick);
   }
 
   stop() {
     this.running = false;
     cancelAnimationFrame(this.rafId);
+    if (this.byVideoFrame) this.video.cancelVideoFrameCallback(this.frameId);
     this.videoFps.reset();
     this.detectFps.reset();
   }
@@ -60,11 +70,13 @@ export class DetectionLoop {
 
   tick() {
     if (!this.running) return;
-    this.rafId = requestAnimationFrame(this.tick);
+    this.schedule();
 
     const video = this.video;
-    // Нет данных или кадр не сменился с прошлого раза — ждём
-    if (video.readyState < 2 || video.currentTime === this.lastVideoTime) return;
+    // Нет данных или кадр не сменился с прошлого раза — ждём (с requestVideoFrameCallback
+    // каждый вызов — уже новый кадр)
+    if (video.readyState < 2) return;
+    if (!this.byVideoFrame && video.currentTime === this.lastVideoTime) return;
     this.lastVideoTime = video.currentTime;
     this.videoFps.tick();
 

@@ -467,5 +467,10 @@
   "sp.state.idle": "Микрофонро пахш кунед ва калимаро такрор кунед",
   "sp.state.speak": "Мегӯям…",
   "sp.state.dialog": "Сӯҳбат идома дорад",
-  "sp.statMasteredShort": "омӯхта шуд"
+  "sp.statMasteredShort": "омӯхта шуд",
+  "seq.title": "Нейросети нав",
+  "seq.off": "хомӯш (пешина кор мекунад)",
+  "seq.loading": "бор мешавад…",
+  "seq.error": "бор нашуд — пешина кор мекунад",
+  "seq.ready": "фаъол: 1D-CNN + Transformer, {acc}% дар одамони нав, {ms} мс барои сабт"
 }

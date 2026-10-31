@@ -467,5 +467,10 @@
   "sp.state.idle": "Нажмите на микрофон и повторите слово",
   "sp.state.speak": "Говорю…",
   "sp.state.dialog": "Разговор идёт",
-  "sp.statMasteredShort": "освоено"
+  "sp.statMasteredShort": "освоено",
+  "seq.title": "Новая нейросеть",
+  "seq.off": "выключена (работает прежняя)",
+  "seq.loading": "загружается…",
+  "seq.error": "не загрузилась — работает прежняя",
+  "seq.ready": "включена: 1D-CNN + Transformer, {acc}% на новых людях, {ms} мс на запись"
 }

@@ -2,6 +2,9 @@
 // Хранит кадры за последние 2.5 с и ~7 раз в секунду спрашивает модель:
 // «что за жест в последних 1 / 1.5 / 2 секундах?» — жесты бывают быстрые и медленные.
 // Из трёх ответов берётся самый уверенный.
+//
+// Новая нейросеть (1D-CNN + Transformer, model/seqRunner.js), если включена и готова, считает
+// в фоновом потоке: ответ приходит асинхронно, пока он считается — новые окна не ставятся в очередь.
 
 import { SLOT, frameFromHands, hasHands } from '../dataset/features.js';
 import { NONE_LABEL } from '../dataset/dataset.js';
@@ -47,10 +50,12 @@ export class LiveRecognizer {
    * @param {object} deps
    * @param {import('../model/classifier.js').GestureClassifier} deps.classifier
    * @param {() => number} deps.getAspect
+   * @param {{seq: import('../model/seqRunner.js').SeqRunner, enabled: () => boolean}} [deps.seq]
    */
-  constructor({ classifier, getAspect }) {
+  constructor({ classifier, getAspect, seq }) {
     this.classifier = classifier;
     this.getAspect = getAspect;
+    this.seq = seq;
     this.buffer = []; // {t, frame}
     this.lastRun = 0;
     this.listeners = new Set();
@@ -71,15 +76,26 @@ export class LiveRecognizer {
   push(hands, now = performance.now()) {
     this.buffer.push({ t: now, frame: frameFromHands(hands, this.getAspect()) });
     while (this.buffer.length && now - this.buffer[0].t > KEEP_MS) this.buffer.shift();
-    if (!this.paused && this.classifier.isReady && now - this.lastRun >= EVERY_MS) {
+    if (this.paused || !this.classifier.isReady || now - this.lastRun < EVERY_MS) return;
+    if (this.useSeq()) {
+      if (this.seqBusy) return; // прошлый ответ ещё считается — не копим очередь
       this.lastRun = now;
-      const result = this.predict(now);
-      this.listeners.forEach((fn) => fn(result));
+      this.predictSeq(now);
+      return;
     }
+    this.lastRun = now;
+    const result = this.predict(now);
+    this.listeners.forEach((fn) => fn(result));
   }
 
-  predict(now) {
-    let best = { label: NONE_LABEL, confidence: 0 };
+  /** Новая нейросеть — вместо базовой модели (своя модель из «Омӯзиш» знает свои слова — её не трогаем). */
+  useSeq() {
+    return Boolean(this.seq?.enabled() && this.seq.seq.ready && this.classifier.meta?.source === 'base');
+  }
+
+  /** Окна, которые стоит показать модели: достаточно кадров, руки видны и двигаются. */
+  windows(now) {
+    const clips = [];
     let handsSeen = false;
     for (const win of WINDOWS_MS) {
       const items = this.buffer.filter((item) => now - item.t <= win);
@@ -91,9 +107,39 @@ export class LiveRecognizer {
       handsSeen = true;
       // Руки стоят — тоже не жест
       if (motionSpeed(items) < MIN_MOTION) continue;
+      clips.push(frames);
+    }
+    return { clips, handsSeen };
+  }
+
+  predict(now) {
+    let best = { label: NONE_LABEL, confidence: 0 };
+    const { clips, handsSeen } = this.windows(now);
+    for (const frames of clips) {
       const p = this.classifier.predict(frames);
       if (p.confidence > best.confidence) best = p;
     }
     return { label: best.label, confidence: best.confidence, hands: handsSeen };
+  }
+
+  async predictSeq(now) {
+    const { clips, handsSeen } = this.windows(now);
+    let best = { label: NONE_LABEL, confidence: 0 };
+    if (clips.length) {
+      this.seqBusy = true;
+      try {
+        const labels = this.seq.seq.labels;
+        for (const probs of await this.seq.seq.predict(clips)) {
+          let top = 0;
+          for (let i = 1; i < probs.length; i++) if (probs[i] > probs[top]) top = i;
+          if (probs[top] > best.confidence) best = { label: labels[top], confidence: probs[top] };
+        }
+      } finally {
+        this.seqBusy = false;
+      }
+    }
+    if (this.paused) return;
+    const result = { label: best.label, confidence: best.confidence, hands: handsSeen };
+    this.listeners.forEach((fn) => fn(result));
   }
 }
