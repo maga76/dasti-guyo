@@ -16,6 +16,7 @@ import { TrainView } from './ui/trainView.js';
 import { TranslateView } from './ui/translateView.js';
 import { ModelView } from './ui/modelView.js';
 import { LiveRecognizer } from './recognizer/recognizer.js';
+import { SeqRunner, isSeqEnabled, setSeqEnabled } from './model/seqRunner.js';
 import { ReplyView } from './ui/replyView.js';
 import { PracticeView } from './ui/practiceView.js';
 import { AdminView } from './ui/adminView.js';
@@ -52,7 +53,9 @@ const isCameraOn = () => state.camera === 'on';
 
 const recorder = new Recorder(getAspect);
 const classifier = new GestureClassifier();
-const recognizer = new LiveRecognizer({ classifier, getAspect });
+// Новая нейросеть (эксперимент): грузится в фоне, включается переключателем в «Технических данных»
+const seq = new SeqRunner();
+const recognizer = new LiveRecognizer({ classifier, getAspect, seq: { seq, enabled: isSeqEnabled } });
 const translateView = new TranslateView({ classifier, recognizer, isCameraOn });
 // Только в режиме разработки: доступ из консоли браузера для проверок (tests, скриншоты)
 if (import.meta.env.DEV) window.__translateView = translateView;
@@ -251,6 +254,22 @@ $('chkPoints').addEventListener('change', () => clearCanvas(ctx));
 
 // ---------- Технические данные ----------
 
+function renderSeq() {
+  const el = $('stSeq');
+  if (!isSeqEnabled()) el.textContent = t('seq.off');
+  else if (seq.error) el.textContent = t('seq.error');
+  else if (!seq.ready) el.textContent = t('seq.loading');
+  else el.textContent = t('seq.ready', { ms: seq.lastMs ? seq.lastMs.toFixed(1) : '—', acc: Math.round((seq.meta?.metrics?.testAccuracy ?? 0) * 100) });
+}
+
+$('chkSeq').checked = isSeqEnabled();
+$('chkSeq').addEventListener('change', (e) => {
+  setSeqEnabled(e.target.checked);
+  recognizer.reset();
+  renderSeq();
+});
+seq.load().then(renderSeq);
+
 function setState(id, text, kind = '') {
   const el = $(id);
   el.textContent = text;
@@ -266,11 +285,13 @@ function renderStatus() {
 
   const cameraText = { off: 'status.cameraOff', starting: 'status.cameraStarting', on: 'status.cameraOn' };
   setState('stCamera', t(cameraText[state.camera]), state.camera === 'on' ? 'ok' : '');
+  renderSeq();
   const where = tracker.inWorker ? `, ${t('status.inWorker')}` : '';
   $('stDelegate').textContent = tracker.delegate ? t(`status.delegate${tracker.delegate}`) + where : '—';
 }
 
 function renderStats() {
+  renderSeq(); // время расчёта новой нейросети меняется — показываем свежее
   const s = loop.stats;
   const running = isCameraOn();
   $('stVideoFps').textContent = running ? Math.round(s.videoFps) : 0;

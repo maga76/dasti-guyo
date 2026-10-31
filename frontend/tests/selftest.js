@@ -239,6 +239,23 @@ await check('Руки не обрываются: ведение по полож�
   return 'появление, удержание, сторона, отсев по телу, голова у руки';
 });
 
+await check('Новая нейросеть (1D-CNN + Transformer) в браузере = PyTorch', async () => {
+  const { SeqModel } = await import('../src/model/seqModel.js');
+  const base = import.meta.env?.BASE_URL ?? '/';
+  const [meta, weights, cases] = await Promise.all([
+    fetch(`${base}models/seq/model.json`).then((r) => r.json()),
+    fetch(`${base}models/seq/weights.bin`).then((r) => r.arrayBuffer()),
+    fetch(`${base}models/seq/check.json`).then((r) => r.json()),
+  ]);
+  const model = new SeqModel(meta, weights);
+  let diff = 0;
+  const start = performance.now();
+  for (const c of cases) diff = Math.max(diff, maxDiff(model.predict(c.frames), c.probs));
+  const ms = (performance.now() - start) / cases.length;
+  assert(diff < 1e-3, `разница ${diff}`);
+  return `${meta.labels.length} жестов, на новых людях ${Math.round(meta.metrics.testAccuracy * 100)}%, ${ms.toFixed(1)} мс на запись, разница ${diff.toExponential(1)}`;
+});
+
 await check('Помощник предложения: глагол по лицу и времени, предлоги, вопрос', async () => {
   const { completeSentence } = await import('../src/dataset/grammar.js');
   const cases = [
