@@ -26,6 +26,7 @@ os.environ.update(
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.api.routes.auth import login_limiter, register_limiter  # noqa: E402
+from app.api.routes.support import support_limiter  # noqa: E402
 from app.core.config import FEATURES_PER_FRAME  # noqa: E402
 from app.core.database import Base, SessionLocal, engine  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
@@ -52,6 +53,7 @@ def client(_app_client):
             conn.execute(table.delete())
     login_limiter.reset()
     register_limiter.reset()
+    support_limiter.reset()
     _app_client.headers.pop("Authorization", None)
     return _app_client
 

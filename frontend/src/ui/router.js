@@ -9,6 +9,7 @@ const ROUTES = {
   '#/avatar': 'avatar',
   '#/profile': 'profile',
   '#/speech': 'speech',
+  '#/support': 'support',
 };
 const DEFAULT = 'translate';
 

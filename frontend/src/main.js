@@ -22,6 +22,7 @@ import { AdminView } from './ui/adminView.js';
 import { AvatarView } from './ui/avatarView.js';
 import { ProfileView } from './ui/profileView.js';
 import { SpeechView } from './ui/speechView.js';
+import { SupportView } from './ui/supportView.js';
 import { initPasswordToggles } from './ui/passwordField.js';
 import { initNetworkBadge } from './ui/network.js';
 import { initRouter } from './ui/router.js';
@@ -60,6 +61,8 @@ const adminView = new AdminView();
 const avatarView = new AvatarView();
 const profileView = new ProfileView();
 const speechView = new SpeechView();
+const supportView = new SupportView();
+let lastRoute = null;
 initPasswordToggles();
 new ReplyView();
 const onModelChange = () => {
@@ -310,6 +313,10 @@ initRouter((route) => {
   avatarView.setActive(route === 'avatar');
   profileView.setActive(route === 'profile');
   speechView.setActive(route === 'speech');
+  // В поддержке полезно знать, с какой вкладки пришёл человек
+  if (route === 'support' && lastRoute !== 'support') supportView.fromPage = lastRoute;
+  supportView.setActive(route === 'support');
+  lastRoute = route;
 });
 renderStatus();
 renderStats();

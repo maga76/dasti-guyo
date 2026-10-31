@@ -6,6 +6,7 @@ from app.models.model_version import ModelVersion
 from app.models.phrase import Phrase, QuickPhrase
 from app.models.practice import PracticeResult
 from app.models.speech import SpeechResult
+from app.models.support import SupportMessage
 from app.models.user import Role, User
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     "Role",
     "Sample",
     "SpeechResult",
+    "SupportMessage",
     "User",
 ]
