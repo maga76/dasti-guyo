@@ -11,19 +11,11 @@ import { assetUrls, download } from '../net/download.js';
 
 // Аватары. male / female — Microsoft Rocketbox (MIT): реалистичные люди с полным скелетом кистей
 // (у каждого пальца три сустава), сконвертированы инструментом tools/rocketbox.html.
-// classic — прежний аватар Ready Player Me из примеров Three.js.
+// Прежний «классический» аватар Ready Player Me убран из выбора (по просьбе); у кого он был
+// сохранён, avatarView.js сам переключает на первого из списка.
 export const AVATARS = {
   male: { file: 'male.glb' },
   female: { file: 'female.glb' },
-  classic: {
-    file: 'avatar.glb',
-    hide: ['Wolf3D_Beard'],
-    tint: {
-      Wolf3D_Outfit_Top: '#4a5f9e', // костюм — тёмно-синий (цвет умножается на текстуру)
-      Wolf3D_Outfit_Bottom: '#3a4055',
-      Wolf3D_Headwear: '#5a6688',
-    },
-  },
 };
 export const DEFAULT_AVATAR = 'male';
 // Ось, вокруг которой открывается рот (поперёк лица; аватар смотрит на +Z)
