@@ -189,6 +189,7 @@ export class AvatarStage {
     }
 
     this.rig.resetArms();
+    this.rig.frameDt = dt;
     this.rig.solveHand('Right', pose.Right);
     this.rig.solveHand('Left', pose.Left);
     this.onPose?.(pose); // для схемы рук рядом с аватаром

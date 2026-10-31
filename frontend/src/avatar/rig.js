@@ -154,7 +154,11 @@ export class AvatarRig {
     this.rest = new Map();
     for (const bone of Object.values(this.bones)) this.rest.set(bone, bone.quaternion.clone());
 
-    this.smoothing = 0.35; // 0..1: меньше — плавнее, больше — точнее
+    // Сглаживание суставов: доля пути к новой позе за 1/60 с (меньше — плавнее, больше — точнее).
+    // Считается по времени, а не по кадрам: на экране 144 Гц прежнее «0.35 за кадр» делало руки
+    // вязкими и запаздывающими, на медленном — дёрганными
+    this.smoothing = 0.5;
+    this.frameDt = 1 / 60; // время с прошлого кадра, с — задаёт AvatarStage
     this.sides = {};
     for (const side of ['Left', 'Right']) {
       const b = (name) => this.bones[`${side}${name}`];
@@ -366,13 +370,19 @@ export class AvatarRig {
     }
   }
 
+  /** Доля пути к новой позе за этот кадр — одинаковая плавность при любой частоте экрана. */
+  frameAlpha() {
+    if (!(this.frameDt > 0)) return 1;
+    return 1 - (1 - this.smoothing) ** (this.frameDt * 60);
+  }
+
   /** Сглаживание во времени: убирает дрожание записи и делает переходы между жестами плавными. */
   applySmoothing(side) {
     const all = [side.arm, side.fore, side.hand, ...Object.values(side.fingers).flat()];
     for (const bone of all) {
       const solved = bone.quaternion.clone();
       const prev = side.smooth.get(bone);
-      if (prev) solved.copy(prev.slerp(solved, this.smoothing));
+      if (prev) solved.copy(prev.slerp(solved, this.frameAlpha()));
       side.smooth.set(bone, solved.clone());
       bone.quaternion.copy(solved);
     }

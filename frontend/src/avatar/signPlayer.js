@@ -15,6 +15,7 @@ const CLIP_SECONDS = 2.0; // длительность одного жеста п
 const GAP_SECONDS = 0.25; // пауза между словами
 const FADE_SECONDS = 0.35; // вход в жест из спокойной позы и выход
 const MAX_HOLD_FRAMES = 4; // сколько кадров «держать» руку, если на записи она пропала
+const SMOOTH_WEIGHTS = [1, 4, 6, 4, 1];
 
 /**
  * Выбрать для каждого жеста самую типичную запись (ближе всех к остальным — «медоид»)
@@ -116,13 +117,21 @@ export function framesToWorld(frames, rig) {
     });
   }
   for (const side of ['Right', 'Left']) fixDepthSign(track[side], side);
-  // Сглаживание по времени (среднее по 3 соседним кадрам): убирает дрожание точек с видео
+  // Сглаживание по времени (5 соседних кадров с весами 1-4-6-4-1): убирает дрожание точек с видео,
+  // но не «съедает» быстрые движения, как простое среднее по многим кадрам
   for (const side of ['Right', 'Left']) {
     const src = track[side];
     track[side] = src.map((p, i) => {
       if (!p) return null;
-      const near = [src[i - 1], p, src[i + 1]].filter(Boolean);
-      return p.map((_, k) => near.reduce((acc, q) => acc.add(q[k]), new THREE.Vector3()).divideScalar(near.length));
+      let weight = 0;
+      const sum = p.map(() => new THREE.Vector3());
+      SMOOTH_WEIGHTS.forEach((w, j) => {
+        const q = src[i + j - 2];
+        if (!q) return;
+        weight += w;
+        q.forEach((v, k) => sum[k].addScaledVector(v, w));
+      });
+      return sum.map((v) => v.divideScalar(weight));
     });
   }
   // Короткие пропуски руки заполняем последней известной позой
@@ -171,9 +180,34 @@ function fixDepthSign(frames, side) {
   }
 }
 
-function lerpPoints(a, b, t) {
-  if (!a || !b) return a ?? b;
-  return a.map((p, i) => p.clone().lerp(b[i], t));
+/**
+ * Поза между кадрами записи. Кривая Катмулла — Рома через 4 соседних кадра: рука идёт плавно,
+ * без излома скорости на каждом кадре (по прямой между кадрами было 16 «рывков» в секунду).
+ */
+function interpolate(frames, pos) {
+  const n = frames.length;
+  const i = Math.floor(pos);
+  const t = pos - i;
+  const at = (k) => frames[Math.min(Math.max(k, 0), n - 1)];
+  const p1 = at(i);
+  const p2 = at(i + 1);
+  if (!p1 || !p2) return p1 ?? p2;
+  const p0 = at(i - 1) ?? p1;
+  const p3 = at(i + 2) ?? p2;
+  const t2 = t * t;
+  const t3 = t2 * t;
+  // Коэффициенты кривой для точек p0…p3
+  const c0 = -0.5 * t3 + t2 - 0.5 * t;
+  const c1 = 1.5 * t3 - 2.5 * t2 + 1;
+  const c2 = -1.5 * t3 + 2 * t2 + 0.5 * t;
+  const c3 = 0.5 * t3 - 0.5 * t2;
+  return p1.map((v, k) =>
+    new THREE.Vector3()
+      .addScaledVector(p0[k], c0)
+      .addScaledVector(v, c1)
+      .addScaledVector(p2[k], c2)
+      .addScaledVector(p3[k], c3),
+  );
 }
 
 export class SignPlayer {
@@ -239,9 +273,7 @@ export class SignPlayer {
     const pose = { signing: true };
     for (const side of ['Right', 'Left']) {
       const frames = clip.track[side];
-      const pos = local * (frames.length - 1);
-      const i = Math.floor(pos);
-      pose[side] = lerpPoints(frames[i], frames[Math.min(i + 1, frames.length - 1)], pos - i);
+      pose[side] = interpolate(frames, local * (frames.length - 1));
     }
     // После последнего жеста руки возвращаются в спокойную позу (плавность даёт сглаживание в rig)
     if (this.time > this.total - FADE_SECONDS) return { Right: null, Left: null, signing: true };
