@@ -140,6 +140,27 @@ class SeqNet(nn.Module):
 # ---------- Обучение и проверка ----------
 
 
+def live_augment(frames, rng):
+    """Запись — как её видит сайт на живой камере: окно последних 1–2 с, где жест бывает не целиком,
+    с паузой до/после и другой скоростью. Без этого сеть привыкала к целым записям и на камере
+    узнавала часть жестов хуже прежней."""
+    arr = augment(frames, rng)  # обрезка краёв до 15%, зеркало, шум
+    n = len(arr)
+    if n >= 12 and rng.random() < 0.6:
+        keep = int(n * rng.uniform(0.55, 1.0))  # кусок жеста
+        start = rng.integers(0, n - keep + 1)
+        arr = arr[start : start + keep]
+    if rng.random() < 0.3:  # руки стоят до или после жеста
+        pad = max(1, int(len(arr) * rng.uniform(0.1, 0.35)))
+        before = rng.random() < 0.5
+        still = np.repeat(arr[:1] if before else arr[-1:], pad, axis=0)
+        arr = np.concatenate([still, arr] if before else [arr, still])
+    if len(arr) >= 8 and rng.random() < 0.3:  # другая скорость: пропуск или повтор кадров
+        idx = np.clip(np.round(np.arange(0, len(arr), rng.uniform(0.7, 1.4))).astype(int), 0, len(arr) - 1)
+        arr = arr[idx]
+    return arr
+
+
 def batches(words, others, rng):
     """Записи одной эпохи — как у MLP: слова с AUG_COPIES случайными копиями + часть «не наш жест»."""
     xs, ys = [], []
@@ -147,12 +168,12 @@ def batches(words, others, rng):
         xs.append(seq_input(s["frames"]))
         ys.append(s["label"])
         for _ in range(AUG_COPIES):
-            xs.append(seq_input(augment(s["frames"], rng)))
+            xs.append(seq_input(live_augment(s["frames"], rng)))
             ys.append(s["label"])
     if others:
         for i in rng.choice(len(others), size=min(NONE_PER_EPOCH, len(others)), replace=False):
             frames = others[i]["frames"]
-            xs.append(seq_input(augment(frames, rng) if rng.random() < 0.5 else frames))
+            xs.append(seq_input(live_augment(frames, rng) if rng.random() < 0.5 else frames))
             ys.append(others[i]["label"])
     x = torch.from_numpy(np.stack(xs))
     y = torch.from_numpy(np.asarray(ys, dtype=np.int64))
@@ -289,6 +310,10 @@ def main():
     params = sum(p.numel() for p in SeqNet(classes).parameters())
     print(f"Записей: {len(samples)}, классов: {classes}, параметров сети: {params}", flush=True)
 
+    if "--metrics" in sys.argv:
+        # Проверка уже была (её цифры — в файле): только итоговое обучение
+        metrics = json.loads(Path(sys.argv[sys.argv.index("--metrics") + 1]).read_text(encoding="utf-8"))
+        return finish(samples, classes, source_labels, rng, metrics, words_test)
     print("Проверочное обучение (люди из test не участвуют)…", flush=True)
     probe, curve = train(words_train + other_train, classes, rng, test=words_test)
     metrics = {
@@ -303,6 +328,10 @@ def main():
     print(f"Точность на новых людях: {metrics['testAccuracy']:.1%}", flush=True)
     print(f"  {json.dumps({k: v for k, v in metrics.items() if k != 'curve'}, ensure_ascii=False)}", flush=True)
 
+    finish(samples, classes, source_labels, rng, metrics, words_test)
+
+
+def finish(samples, classes, source_labels, rng, metrics, words_test):
     print("Итоговое обучение на всех записях…", flush=True)
     final, _ = train(samples, classes, rng)  # как у MLP: «не наш жест» — все не-слова
     tj_labels = [base.WORDS[l][0] if l in base.WORDS else base.NONE_LABEL for l in source_labels]

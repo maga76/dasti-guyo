@@ -93,6 +93,17 @@ export class LiveRecognizer {
     return Boolean(this.seq?.enabled() && this.seq.seq.ready && this.classifier.meta?.source === 'base');
   }
 
+  /** Номер каждого слова новой сети в ответе прежней (по названию); null — словари разные. */
+  mlpIndex(labels) {
+    const mlpLabels = this.classifier.meta?.labels;
+    if (!mlpLabels) return null;
+    if (this.cachedIndex?.labels !== mlpLabels) {
+      const index = labels.map((l) => mlpLabels.indexOf(l));
+      this.cachedIndex = { labels: mlpLabels, index: index.every((i) => i >= 0) ? index : null };
+    }
+    return this.cachedIndex.index;
+  }
+
   /** Окна, которые стоит показать модели: достаточно кадров, руки видны и двигаются. */
   windows(now) {
     const clips = [];
@@ -129,11 +140,20 @@ export class LiveRecognizer {
       this.seqBusy = true;
       try {
         const labels = this.seq.seq.labels;
-        for (const probs of await this.seq.seq.predict(clips)) {
+        const seqProbs = await this.seq.seq.predict(clips);
+        // Обе сети вместе: среднее их вероятностей. Новая точнее в целом, прежняя лучше узнаёт
+        // часть жестов на живой камере — вместе ошибаются реже каждой по отдельности
+        const mlpIndex = this.mlpIndex(labels);
+        seqProbs.forEach((probs, k) => {
+          const mlp = mlpIndex ? this.classifier.predict(clips[k]).probs : null;
           let top = 0;
-          for (let i = 1; i < probs.length; i++) if (probs[i] > probs[top]) top = i;
-          if (probs[top] > best.confidence) best = { label: labels[top], confidence: probs[top] };
-        }
+          let topP = -1;
+          for (let i = 0; i < probs.length; i++) {
+            const p = mlp && mlpIndex[i] >= 0 ? (probs[i] + mlp[mlpIndex[i]]) / 2 : probs[i];
+            if (p > topP) [top, topP] = [i, p];
+          }
+          if (topP > best.confidence) best = { label: labels[top], confidence: topP };
+        });
       } finally {
         this.seqBusy = false;
       }
