@@ -6,6 +6,9 @@
     <meta name="description" content="Дасти Гӯё — тарҷумони ройгони забони имову ишораи тоҷикӣ" />
     <meta name="theme-color" content="#0A1228" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Установка как приложение (значок на телефоне, отдельное окно) — см. src/ui/pwa.js -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <title>Дасти Гӯё</title>
   </head>
   <body>
@@ -18,6 +21,10 @@
         <a href="#/" data-route="translate">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M9 4v2c0 4-2 7-5 9M6 10c1 2 3 4 6 5M13 20l4-9 4 9M14.5 17h5"/></svg>
           <span data-i18n="nav.translate"></span>
+        </a>
+        <a href="#/talk" data-route="talk">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v8H7l-4 3V5z"/><path d="M10 16h7l4 3v-9h-4"/></svg>
+          <span data-i18n="nav.talk"></span>
         </a>
         <a href="#/avatar" data-route="avatar">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.5"/><path d="M8 21v-6l-3-4 4-2h6l4 2-3 4v6M9.5 13h5"/></svg>
@@ -48,6 +55,8 @@
         </span>
         <span class="user-chip-name" id="userChipName" data-i18n="pf.signIn"></span>
       </a>
+      <!-- SOS: экстренные фразы громко и на весь экран (сам сайт никуда не звонит) -->
+      <a class="sos-chip" href="#/sos" data-route="sos" data-i18n-title="sos.title">SOS</a>
       <button type="button" class="icon-btn present-btn" id="btnPresent" data-i18n-title="present.on" data-i18n-aria-label="present.on" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
       </button>
@@ -240,6 +249,36 @@
       </section>
 
       <!-- ===== Экран «Ба имо»: речь слышащего → жесты 3D-аватара ===== -->
+      <!-- Разговор: глухой — жестами, слышащий — голосом; см. talkView.js -->
+      <section class="panel view talk" data-view="talk" hidden>
+        <div class="talk-head">
+          <h2 data-i18n="talk.title"></h2>
+          <button type="button" class="btn btn-secondary btn-small" id="talkClear" data-i18n="talk.clear"></button>
+        </div>
+        <p class="hint" data-i18n="talk.hint"></p>
+        <div class="talk-avatar" id="talkAvatar"></div>
+        <div class="talk-live is-empty" id="talkLive">
+          <span class="talk-live-label" data-i18n="talk.deafNow"></span>
+          <div class="sentence-words" id="talkLiveWords" lang="tg"></div>
+          <p id="talkLiveText" lang="tg" aria-live="polite"></p>
+          <button type="button" class="btn btn-primary btn-small" id="talkCamera" data-i18n="camera.start"></button>
+        </div>
+        <ol class="talk-feed" id="talkFeed" aria-live="polite"></ol>
+        <form class="talk-input" id="talkForm">
+          <button type="button" class="talk-mic" id="talkMic">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
+            <span id="talkMicLabel"></span>
+          </button>
+          <select id="talkLang" data-i18n-aria-label="tr.micLang">
+            <option value="tg-TJ">Тоҷикӣ</option>
+            <option value="ru-RU">Русский</option>
+          </select>
+          <input id="talkInput" autocomplete="off" data-i18n-placeholder="talk.placeholder" />
+          <button type="submit" class="btn btn-primary" data-i18n="talk.send"></button>
+        </form>
+        <p class="note is-error" id="talkStatus" role="status"></p>
+      </section>
+
       <section class="avatar-page view" data-view="avatar" hidden>
         <div class="av-stage" id="avStage">
           <canvas class="av-canvas" id="avCanvas"></canvas>
@@ -321,6 +360,14 @@
       <!-- ===== Экран «Профил»: регистрация, вклад в ИИ, знание жестов ===== -->
       <section class="profile-page view" data-view="profile" hidden>
         <div id="profileRoot"></div>
+      </section>
+
+      <section class="sos-page view" data-view="sos" hidden>
+        <div id="sosRoot"></div>
+      </section>
+
+      <section class="about-page view" data-view="about" hidden>
+        <div id="aboutRoot"></div>
       </section>
 
       <section class="support-page view" data-view="support" hidden>
@@ -540,6 +587,7 @@
 
     <footer class="footer">
       <span data-i18n="app.footer"></span>
+      <a href="#/about" data-route="about" data-i18n="nav.about"></a>
       <a href="#/support" data-route="support" data-i18n="nav.support"></a>
       <a href="#/admin" data-i18n="nav.admin"></a>
       <a href="/privacy.html" target="_blank" rel="noopener" data-i18n="app.privacy"></a>

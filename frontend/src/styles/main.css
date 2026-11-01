@@ -1408,6 +1408,7 @@ svg:not(.chart-svg) {
 .bigtext-value {
   max-width: 100%;
   margin: 0;
+  white-space: pre-line; /* SOS: фраза, перевод и номер — отдельными строками */
   font-weight: 800;
   font-family: var(--font-display);
   line-height: 1.1;
@@ -4766,6 +4767,581 @@ body[data-route='support'] .layout {
 
 @media (max-width: 860px) {
   .sup {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Разговор ---------- */
+
+.talk {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.talk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.talk-head h2 {
+  margin: 0;
+}
+
+.talk .hint {
+  margin: 0;
+}
+
+/* Сцена аватара на время разговора — ниже, чем на своём экране */
+.talk-avatar .av-stage {
+  height: min(40dvh, 360px);
+  min-height: 260px;
+}
+
+.talk-avatar .av-pick,
+.talk-avatar .av-inset {
+  display: none;
+}
+
+.talk-live {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 3px 0 0 var(--gold-line), inset 0 0 0 1px var(--line);
+}
+
+.talk-live-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.talk-live p {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.talk-live.is-empty p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.talk-live .btn {
+  align-self: flex-start;
+}
+
+.talk-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 340px;
+  min-height: 120px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.talk-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 16px;
+}
+
+.talk-msg p {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.talk-msg small {
+  color: var(--muted);
+}
+
+.talk-who {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.talk-msg.is-deaf {
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.talk-msg.is-hearing {
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.talk-msg.is-hearing .talk-who {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.talk-replay {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.talk-empty {
+  padding: 18px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.talk-input {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.talk-input input,
+.talk-input select {
+  min-height: 46px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+  font: inherit;
+  min-width: 0;
+}
+
+.talk-mic {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--gold-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.talk-mic svg {
+  width: 20px;
+  height: 20px;
+}
+
+.talk-mic.is-listening {
+  background: var(--red);
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .talk-input {
+    grid-template-columns: auto 1fr;
+  }
+
+  .talk-input input {
+    grid-column: 1 / -1;
+  }
+}
+
+.talk-avatar .av-word {
+  font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+}
+
+/* ---------- SOS ---------- */
+
+.sos-chip {
+  display: inline-grid;
+  place-items: center;
+  min-width: 52px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.sos-chip[aria-current='page'] {
+  box-shadow: 0 0 0 3px var(--red-soft);
+}
+
+body[data-route='sos'] .stage-col {
+  display: none;
+}
+
+body[data-route='sos'] .layout {
+  grid-template-columns: 1fr;
+}
+
+.sos-page {
+  max-width: 1080px;
+  width: 100%;
+}
+
+.sos-head h1 {
+  margin: 0 0 6px;
+  color: var(--red);
+}
+
+.sos-head p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 640px;
+}
+
+.sos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.sos-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 150px;
+  padding: 18px;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--red-soft), var(--shadow);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.sos-btn:active {
+  transform: scale(0.98);
+}
+
+.sos-btn svg {
+  width: 34px;
+  height: 34px;
+  color: var(--red);
+}
+
+.sos-btn b {
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+
+.sos-btn small {
+  color: var(--muted);
+}
+
+.sos-btn em {
+  margin-top: auto;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--red);
+}
+
+.sos-btn.is-bad,
+.sos-btn.is-ambulance {
+  background: var(--red);
+  box-shadow: none;
+  color: #fff;
+}
+
+.sos-btn.is-bad svg,
+.sos-btn.is-ambulance svg,
+.sos-btn.is-bad small,
+.sos-btn.is-ambulance small {
+  color: rgb(255 255 255 / 0.85);
+}
+
+.sos-phone {
+  max-width: 420px;
+  margin-top: 20px;
+}
+
+.sos-note {
+  margin-top: 8px;
+}
+
+@media (max-width: 860px) {
+  .sos-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .sos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sos-btn {
+    min-height: 110px;
+  }
+}
+
+/* ---------- О проекте ---------- */
+
+body[data-route='about'] .stage-col {
+  display: none;
+}
+
+body[data-route='about'] .layout {
+  grid-template-columns: 1fr;
+}
+
+.about-page {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  max-width: 1080px;
+  width: 100%;
+}
+
+.about-page h2 {
+  margin: 0 0 10px;
+}
+
+.about-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 28px;
+  align-items: center;
+  padding: 28px 32px;
+  border-radius: var(--r-lg);
+  background: var(--screen);
+  border: 1px solid #1e2d52;
+  color: var(--screen-text);
+}
+
+.about-hero h1 {
+  margin: 0 0 10px;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+}
+
+.about-lead {
+  margin: 0;
+  max-width: 620px;
+  color: var(--screen-muted);
+  font-size: 1.1rem;
+  line-height: 1.55;
+}
+
+.about-install {
+  margin-top: 18px;
+}
+
+.about-install .btn {
+  background: #ecf0f8;
+  color: #0a1228;
+}
+
+.about-install-hint,
+.about-installed {
+  margin: 0;
+  color: var(--screen-muted) !important;
+  font-size: 0.9rem;
+}
+
+.about-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 14px;
+  border-radius: var(--r-md);
+  background: #fff;
+  color: #0a1228;
+  text-align: center;
+}
+
+.about-qr img {
+  display: block;
+  width: 180px;
+  height: 180px;
+}
+
+.about-qr figcaption {
+  display: flex;
+  flex-direction: column;
+  max-width: 180px;
+  font-size: 0.78rem;
+}
+
+.about-card {
+  padding: 22px 24px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--line);
+}
+
+.about-card p {
+  margin: 0 0 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.about-card p:last-child {
+  margin-bottom: 0;
+}
+
+.about-features {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.about-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.about-feature:hover {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.about-feature span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.about-steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.about-steps li {
+  position: relative;
+  padding: 40px 14px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  counter-increment: step;
+}
+
+.about-steps li::before {
+  content: counter(step);
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--gold-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.about-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.about-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 3px 0 0 var(--gold-line), inset 0 0 0 1px var(--line);
+}
+
+.about-stats b {
+  font-size: 1.8rem;
+  letter-spacing: -0.03em;
+}
+
+.about-stats span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.about-next {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.about-tech {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 980px) {
+  .about-features {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .about-steps,
+  .about-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .about-hero {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
+
+  .about-qr {
+    justify-self: start;
+  }
+
+  .about-features,
+  .about-steps,
+  .about-stats {
     grid-template-columns: 1fr;
   }
 }

@@ -217,13 +217,15 @@ export class TranslateView {
     }
     for (const id of ['btnBackspace', 'btnClear', 'btnSpeakSentence', 'btnShowBig']) $(id).disabled = empty;
     this.scheduleSentence();
+    this.onSentenceChange?.();
   }
 
   /** После паузы в жестах — произнести готовое предложение целиком (если включён «Овоз»). */
   scheduleSentence() {
     clearTimeout(this.sentenceTimer);
     clearTimeout(this.preloadTimer);
-    if (this.words.length < 2 || !$('chkAutoSpeak').checked) return;
+    // В «Сӯҳбат» каждое предложение звучит и уходит в чат, даже из одного слова («Салом»)
+    if (this.talkMode ? !this.words.length : this.words.length < 2 || !$('chkAutoSpeak').checked) return;
     const text = this.sentence().tj;
     if (text === this.spokenSentence) return;
     this.preloadTimer = setTimeout(() => preloadText(text), SENTENCE_PRELOAD_MS);
@@ -232,12 +234,19 @@ export class TranslateView {
 
   async speakSentence() {
     if (!this.words.length) return;
-    const { tj } = this.sentence();
-    this.spokenSentence = tj;
+    const sentence = this.sentence();
+    this.spokenSentence = sentence.tj;
+    this.onSentenceSpoken?.(sentence);
+    // В разговоре сказанное ушло в чат — следующее предложение начинается с чистого листа
+    if (this.talkMode) {
+      this.words = [];
+      this.lastAdded = null;
+      this.renderSentence();
+    }
     const box = $('sentenceText');
     box.classList.add('is-speaking');
     try {
-      await speakAndWait(tj);
+      await speakAndWait(sentence.tj);
     } finally {
       box.classList.remove('is-speaking');
     }

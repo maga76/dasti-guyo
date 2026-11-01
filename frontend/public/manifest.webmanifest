@@ -1,0 +1,16 @@
+{
+  "name": "Дасти Гӯё — тарҷумони забони имо",
+  "short_name": "Дасти Гӯё",
+  "description": "Тарҷумони ройгони забони имои тоҷикӣ: имо → матн ва овоз, овоз → имо.",
+  "lang": "tg",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070d1e",
+  "theme_color": "#0a1228",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

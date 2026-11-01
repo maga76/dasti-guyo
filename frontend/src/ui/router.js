@@ -10,6 +10,9 @@ const ROUTES = {
   '#/profile': 'profile',
   '#/speech': 'speech',
   '#/support': 'support',
+  '#/talk': 'talk',
+  '#/sos': 'sos',
+  '#/about': 'about',
 };
 const DEFAULT = 'translate';
 

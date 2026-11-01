@@ -24,6 +24,9 @@ import { AvatarView } from './ui/avatarView.js';
 import { ProfileView } from './ui/profileView.js';
 import { SpeechView } from './ui/speechView.js';
 import { SupportView } from './ui/supportView.js';
+import { TalkView } from './ui/talkView.js';
+import { SosView } from './ui/sosView.js';
+import { AboutView } from './ui/aboutView.js';
 import { initPasswordToggles } from './ui/passwordField.js';
 import { initNetworkBadge } from './ui/network.js';
 import { initRouter } from './ui/router.js';
@@ -65,6 +68,8 @@ const avatarView = new AvatarView();
 const profileView = new ProfileView();
 const speechView = new SpeechView();
 const supportView = new SupportView();
+const sosView = new SosView();
+const aboutView = new AboutView();
 let lastRoute = null;
 initPasswordToggles();
 new ReplyView();
@@ -81,6 +86,7 @@ const trainView = new TrainView({
   onModelChange,
 });
 const practiceView = new PracticeView({ classifier, recognizer, isCameraOn, startCamera: () => startCamera() });
+const talkView = new TalkView({ translateView, avatarView, isCameraOn, startCamera: () => startCamera() });
 
 // ---------- Язык ----------
 
@@ -149,6 +155,7 @@ function setCameraState(next) {
   renderStats();
   trainView.onCameraChange();
   translateView.update();
+  if (talkView.active) talkView.paintLive();
 }
 
 function fitCanvas() {
@@ -314,7 +321,7 @@ updateLangButtons();
 // Экраны, где нужна камера. На остальных распознавание рук на паузе (сама камера не выключается,
 // чтобы не спрашивать разрешение снова): иначе нейросети рук и позы 30 раз в секунду работали бы
 // в фоне — и «Талаффуз», 3D-аватар, профиль заметно тормозили бы.
-const CAMERA_ROUTES = new Set(['translate', 'train', 'practice']);
+const CAMERA_ROUTES = new Set(['translate', 'train', 'practice', 'talk']);
 
 initRouter((route) => {
   if (state.camera === 'on') {
@@ -327,16 +334,20 @@ initRouter((route) => {
     }
   }
   trainView.setActive(route === 'train');
-  translateView.setActive(route === 'translate');
+  // В «Сӯҳбат» распознавание жестов и сборка предложений — те же, что на «Тарҷума»
+  translateView.setActive(route === 'translate' || route === 'talk');
   modelView.setActive(route === 'model');
   practiceView.setActive(route === 'practice');
   adminView.setActive(route === 'admin');
-  avatarView.setActive(route === 'avatar');
+  talkView.setActive(route === 'talk');
+  avatarView.setActive(route === 'avatar' || route === 'talk');
   profileView.setActive(route === 'profile');
   speechView.setActive(route === 'speech');
   // В поддержке полезно знать, с какой вкладки пришёл человек
   if (route === 'support' && lastRoute !== 'support') supportView.fromPage = lastRoute;
   supportView.setActive(route === 'support');
+  sosView.setActive(route === 'sos');
+  aboutView.setActive(route === 'about');
   lastRoute = route;
 });
 renderStatus();
