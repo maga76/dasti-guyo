@@ -25,6 +25,8 @@ function paintInstall() {
   banner.hidden = !(isMobile && (state === 'ready' || state === 'ios') && !dismissedRecently());
   $('installBannerBtn').hidden = state !== 'ready';
   $('installBannerIos').hidden = state !== 'ios';
+  // Компьютер: кнопка «Насб кардан» в шапке (на телефоне вместо неё — плашка)
+  $('btnInstallTop').hidden = isMobile || state !== 'ready';
   // Подвал: кнопка, если браузер умеет ставить; иначе — подсказка
   $('footInstall').hidden = state !== 'ready';
   $('footInstallHint').textContent = t(
@@ -39,7 +41,7 @@ function toggleMore(open) {
 }
 
 export function initShell() {
-  for (const id of ['installBannerBtn', 'footInstall']) $(id).addEventListener('click', () => install());
+  for (const id of ['installBannerBtn', 'footInstall', 'btnInstallTop']) $(id).addEventListener('click', () => install());
   $('installBannerClose').addEventListener('click', () => {
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now()));

@@ -55,6 +55,11 @@
         </span>
         <span class="user-chip-name" id="userChipName" data-i18n="pf.signIn"></span>
       </a>
+      <!-- Установить как программу на компьютер (как на king.tj); на телефоне — плашка, см. shell.js -->
+      <button type="button" class="install-top" id="btnInstallTop" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+        <span data-i18n="install.btn"></span>
+      </button>
       <!-- SOS: экстренные фразы громко и на весь экран (сам сайт никуда не звонит) -->
       <a class="sos-chip" href="#/sos" data-route="sos" data-i18n-title="sos.title">SOS</a>
       <button type="button" class="icon-btn present-btn" id="btnPresent" data-i18n-title="present.on" data-i18n-aria-label="present.on" aria-pressed="false">

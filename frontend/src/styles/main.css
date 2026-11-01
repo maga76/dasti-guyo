@@ -5653,3 +5653,44 @@ body[data-route='about'] .layout {
     font-size: 0.85rem;
   }
 }
+
+/* Компьютер: «Насб кардан» в шапке */
+.install-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.install-top:hover {
+  border-color: var(--accent);
+}
+
+.install-top svg {
+  width: 18px;
+  height: 18px;
+}
+
+.install-top[hidden] {
+  display: none;
+}
+
+@media (max-width: 1240px) {
+  .install-top span {
+    display: none;
+  }
+
+  .install-top {
+    padding: 0 10px;
+  }
+}
