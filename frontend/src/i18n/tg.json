@@ -569,5 +569,17 @@
   "about.next3": "Калимаҳои бештар ва реҷаи «барои худ омӯзон»",
   "about.next4": "Барномаи телефон дар мағозаҳои барномаҳо",
   "about.techTitle": "Технологияҳо",
-  "about.tech": "JavaScript, MediaPipe, нейрошабакаҳо дар браузер (Web Worker), Three.js (аватари 3D), Python + FastAPI (сервер), PyTorch ва scikit-learn (омӯзиш), овози Microsoft Neural (Мадина) ва Meta MMS."
+  "about.tech": "JavaScript, MediaPipe, нейрошабакаҳо дар браузер (Web Worker), Three.js (аватари 3D), Python + FastAPI (сервер), PyTorch ва scikit-learn (омӯзиш), овози Microsoft Neural (Мадина) ва Meta MMS.",
+  "foot.about": "Тарҷумони ройгони забони имои тоҷикӣ: имо — ба матн ва овоз, нутқ — ба имо. Лоиҳаи мактабӣ, бе реклама.",
+  "foot.features": "Имкониятҳо",
+  "foot.info": "Маълумот",
+  "foot.app": "Барнома",
+  "foot.scan": "Камераи телефонро ба код нигаред — сайт дар телефони шумо кушода мешавад.",
+  "foot.scanOrInstall": "Камераро ба код нигаред ё дар ҳамин дастгоҳ насб кунед:",
+  "nav.more": "Ҳама",
+  "nav.profile": "Профил",
+  "install.title": "Барномаи «Дасти Гӯё»",
+  "install.sub": "Дар экрани асосӣ, бе браузер",
+  "install.btn": "Насб кардан",
+  "install.close": "Пӯшидан"
 }

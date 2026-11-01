@@ -8,11 +8,13 @@
 
 import { SLOT, frameFromHands, hasHands } from '../dataset/features.js';
 import { NONE_LABEL } from '../dataset/dataset.js';
+import { lowPower } from '../device.js';
 
 const KEEP_MS = 2500;
-const WINDOWS_MS = [1000, 1500, 2000];
+// На телефоне — одно окно (середина) и реже: три окна по две нейросети не успевали бы
+const WINDOWS_MS = lowPower ? [1500] : [1000, 1500, 2000];
 const MIN_FRAMES = 8; // меньше — не о чем судить
-const EVERY_MS = 150;
+const EVERY_MS = lowPower ? 250 : 150;
 // Руки почти стоят — это не жест (просто держат руки в кадре). Скорость — в ладонях в секунду.
 // Порог из записей Slovo: в 99% настоящих жестов руки движутся быстрее 1.4 ладони/с,
 // а неподвижная рука в камере лишь чуть дрожит. Без этого модель называла неподвижные

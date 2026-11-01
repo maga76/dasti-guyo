@@ -9,9 +9,10 @@
 
 import { HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
 import { config } from '../config.js';
+import { lowPower } from '../device.js';
 
 // Поза пересчитывается не чаще, чем раз в столько (руки — каждый кадр)
-const POSE_REFRESH_MS = 100;
+const POSE_REFRESH_MS = lowPower ? 250 : 100; // на телефоне реже: поза — вторая нейросеть
 // Рука в новом кадре — та же, если её центр сдвинулся меньше чем на столько размеров ладони
 const MATCH_SIZES = 2.5;
 // Ведомая рука пропала — столько кадров показываем её последнее положение, а не обрываем

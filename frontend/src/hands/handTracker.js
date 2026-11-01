@@ -11,10 +11,11 @@
 import { FilesetResolver } from '@mediapipe/tasks-vision';
 import { config } from '../config.js';
 import { download, mediapipeWasmBases } from '../net/download.js';
+import { lowPower } from '../device.js';
 
 // Кадр для фонового потока уменьшаем до этой ширины: точки рук — в долях кадра и не меняются,
 // а копировать и распознавать маленький кадр быстрее
-const WORKER_FRAME_WIDTH = 960;
+const WORKER_FRAME_WIDTH = lowPower ? 480 : 960; // на телефоне кадр меньше — копируется и считается быстрее
 const WORKER_START_TIMEOUT_MS = 60_000;
 
 /** @typedef {import('./handCore.js').Hand} Hand */

@@ -5345,3 +5345,311 @@ body[data-route='about'] .layout {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Подвал (как у king.tj) ---------- */
+
+.footer {
+  display: block;
+  margin-top: 40px;
+  padding: 36px 16px 24px;
+  border-top: 1px solid var(--gold-line);
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.foot-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1.3fr;
+  gap: 28px;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.foot-brand p {
+  max-width: 320px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.foot-col,
+.foot-app {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer h3 {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.foot-col a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.foot-col a:hover {
+  color: var(--accent);
+}
+
+.foot-app-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.foot-qr {
+  flex: none;
+  padding: 6px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.foot-app p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.foot-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 20px;
+  max-width: 1320px;
+  margin: 28px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 900px) {
+  .foot-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------- Плашка «Установить приложение» (телефон) ---------- */
+
+.install-banner {
+  position: sticky;
+  top: 8px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 12px 8px;
+  padding: 12px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1d46be, #345cd2);
+  box-shadow: 0 10px 30px -10px rgb(29 70 190 / 0.6);
+  color: #fff;
+}
+
+.install-banner img {
+  flex: none;
+  border-radius: 10px;
+}
+
+.install-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.install-text small {
+  color: rgb(255 255 255 / 0.8);
+}
+
+.install-go {
+  flex: none;
+  background: #fff;
+  color: #1d46be;
+}
+
+.install-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.15);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ---------- Телефон: нижнее меню и лист «Ҳама» ---------- */
+
+.bottom-nav,
+.more-sheet {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  /* Вкладки сверху на телефоне не нужны — меню внизу, под большим пальцем */
+  .topbar .tabs {
+    display: none;
+  }
+
+  body {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+  }
+
+  .bottom-nav a,
+  .bottom-nav button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 52px;
+    padding: 6px 2px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .bottom-nav svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .bottom-nav span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bottom-nav [aria-current='page'],
+  .bottom-nav [aria-expanded='true'] {
+    background: var(--surface-2);
+    color: var(--accent);
+  }
+
+  .more-sheet:not([hidden]) {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    display: flex;
+    align-items: flex-end;
+    background: rgb(0 0 0 / 0.45);
+  }
+
+  .more-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    padding: 16px 16px calc(84px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+
+  .more-panel a {
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--line);
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .more-panel a[aria-current='page'] {
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  .more-panel a.is-sos {
+    background: var(--red);
+    box-shadow: none;
+    color: #fff;
+  }
+
+  .foot-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .footer {
+    margin-top: 28px;
+  }
+}
+
+/* Телефон: шапка в одну строку — логотип, профиль, SOS, язык */
+@media (max-width: 720px) {
+  .topbar {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .brand-name {
+    font-size: 1rem;
+  }
+
+  .brand-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* На телефоне места мало: значок связи — только когда интернета нет совсем */
+  .net-badge:not([data-state='offline']),
+  .present-btn {
+    display: none !important;
+  }
+
+  .lang-switch {
+    margin-left: 0;
+  }
+
+  .lang-switch button {
+    min-width: 34px;
+    min-height: 36px;
+    padding: 0 4px;
+    font-size: 0.85rem;
+  }
+
+  .user-chip {
+    margin-left: auto;
+  }
+
+  .sos-chip {
+    min-width: 44px;
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 0.85rem;
+  }
+}

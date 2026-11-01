@@ -569,5 +569,17 @@
   "about.next3": "Больше слов и режим «научи под себя»",
   "about.next4": "Приложение для телефона в магазинах приложений",
   "about.techTitle": "Технологии",
-  "about.tech": "JavaScript, MediaPipe, нейросети в браузере (Web Worker), Three.js (3D-аватар), Python + FastAPI (сервер), PyTorch и scikit-learn (обучение), голос Microsoft Neural (Мадина) и Meta MMS."
+  "about.tech": "JavaScript, MediaPipe, нейросети в браузере (Web Worker), Three.js (3D-аватар), Python + FastAPI (сервер), PyTorch и scikit-learn (обучение), голос Microsoft Neural (Мадина) и Meta MMS.",
+  "foot.about": "Бесплатный переводчик таджикского жестового языка: жесты — в текст и голос, речь — в жесты. Школьный проект, без рекламы.",
+  "foot.features": "Возможности",
+  "foot.info": "Информация",
+  "foot.app": "Приложение",
+  "foot.scan": "Наведите камеру телефона на код — сайт откроется у вас.",
+  "foot.scanOrInstall": "Наведите камеру на код или установите на это устройство:",
+  "nav.more": "Ещё",
+  "nav.profile": "Профиль",
+  "install.title": "Приложение «Дасти Гӯё»",
+  "install.sub": "На главном экране, без браузера",
+  "install.btn": "Установить",
+  "install.close": "Закрыть"
 }

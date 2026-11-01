@@ -27,6 +27,7 @@ import { SupportView } from './ui/supportView.js';
 import { TalkView } from './ui/talkView.js';
 import { SosView } from './ui/sosView.js';
 import { AboutView } from './ui/aboutView.js';
+import { initShell } from './ui/shell.js';
 import { initPasswordToggles } from './ui/passwordField.js';
 import { initNetworkBadge } from './ui/network.js';
 import { initRouter } from './ui/router.js';
@@ -72,6 +73,7 @@ const sosView = new SosView();
 const aboutView = new AboutView();
 let lastRoute = null;
 initPasswordToggles();
+initShell();
 new ReplyView();
 const onModelChange = () => {
   translateView.update();
