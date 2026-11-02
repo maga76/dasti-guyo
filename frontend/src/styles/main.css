@@ -182,10 +182,10 @@ svg:not(.chart-svg) {
   white-space: nowrap;
 }
 
-/* Средняя ширина: вкладки без значков, профиль — одним кружком, чтобы всё влезло в строку */
+/* Средняя ширина: вкладки без значков, профиль — кружок и короткое имя, чтобы всё влезло в строку */
 @media (min-width: 721px) and (max-width: 1640px) {
   .tabs a {
-    padding: 0 12px;
+    padding: 0 10px;
   }
 
   .tabs a svg {
@@ -193,11 +193,18 @@ svg:not(.chart-svg) {
   }
 
   .user-chip {
-    padding: 4px;
+    min-height: 40px;
+    padding: 3px 12px 3px 3px;
+  }
+
+  .user-chip-avatar {
+    width: 32px;
+    height: 32px;
   }
 
   .user-chip-name {
-    display: none;
+    max-width: 96px;
+    font-size: 0.85rem;
   }
 }
 
@@ -5692,5 +5699,22 @@ body[data-route='about'] .layout {
 
   .install-top {
     padding: 0 10px;
+  }
+}
+
+/* Ноутбук 1181–1366: вкладки, язык и профиль с именем должны помещаться в одну строку */
+@media (min-width: 1181px) and (max-width: 1366px) {
+  .tabs a {
+    padding: 0 8px;
+    font-size: 0.88rem;
+  }
+
+  .lang-switch button {
+    min-width: 40px;
+    padding: 0 6px;
+  }
+
+  .topbar {
+    gap: 10px;
   }
 }
