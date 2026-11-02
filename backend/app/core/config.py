@@ -30,7 +30,8 @@ class Settings(BaseSettings):
     # Секрет для подписи JWT. Обязателен, задаётся только в .env
     jwt_secret: str = Field(min_length=32)
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 12 * 60
+    # Вход запоминается на 30 дней — не нужно входить заново каждый день
+    jwt_expire_minutes: int = 30 * 24 * 60
 
     # Адреса фронтенда через запятую
     cors_origins: str = "http://localhost:5173"

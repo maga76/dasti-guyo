@@ -1,6 +1,6 @@
 // Связь с бэкендом: регистрация, вход по логину и паролю или через Google, запросы с токеном, понятные ошибки.
 // Токен хранится в localStorage — человек остаётся в своём профиле, пока токен не устареет
-// (12 часов) или пока не нажмёт «Выйти».
+// (30 дней) или пока не нажмёт «Выйти».
 
 import { config } from '../config.js';
 import { getLang } from '../i18n/i18n.js';
@@ -131,7 +131,8 @@ function networkError() {
 
 // Вход и регистрация на медленном мобильном интернете: ждём дольше и повторяем сами
 const AUTH_TIMEOUT = 45_000;
-const AUTH_RETRIES = 2;
+// Один повтор: если сервер недоступен, человек быстрее увидит понятную ошибку, а не долгое ожидание
+const AUTH_RETRIES = 1;
 
 export async function login(username, password) {
   const form = new URLSearchParams({ username, password });
