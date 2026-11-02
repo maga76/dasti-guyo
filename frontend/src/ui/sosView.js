@@ -1,11 +1,13 @@
 // Экран SOS: экстренные фразы для глухого человека — в магазине, на улице, в больнице.
 // Нажал — фраза громко звучит (два раза) и показывается крупно на весь экран, чтобы помогли
 // люди рядом. Сайт НИКУДА САМ НЕ ЗВОНИТ. Номер семьи (если человек его записал) показывается
-// крупно — позвонить может любой рядом. Фразы — public/data/sos.json, голос заранее озвучен.
+// крупно — позвонить может любой рядом. Фразы — src/data/sos.json (встроены в сайт: экран SOS
+// не должен зависеть от загрузки по сети), голос заранее озвучен.
 
 import { getLang, onLangChange, t } from '../i18n/i18n.js';
 import { showBigText } from './bigText.js';
 import { speakAndWait, stop as stopVoice } from '../speech/speech.js';
+import sos from '../data/sos.json';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -32,7 +34,7 @@ function readPhone() {
 export class SosView {
   constructor() {
     this.root = $('sosRoot');
-    this.phrases = [];
+    this.phrases = sos.phrases;
     this.active = false;
     this.root.addEventListener('click', (e) => this.onClick(e));
     this.root.addEventListener('change', (e) => {
@@ -47,17 +49,9 @@ export class SosView {
     onLangChange(() => this.paint());
   }
 
-  async setActive(active) {
+  setActive(active) {
     this.active = active;
     if (!active) return;
-    if (!this.phrases.length) {
-      try {
-        const res = await fetch(`${import.meta.env.BASE_URL}data/sos.json`);
-        this.phrases = (await res.json()).phrases;
-      } catch {
-        this.phrases = [];
-      }
-    }
     this.paint();
   }
 

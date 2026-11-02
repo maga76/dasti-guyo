@@ -5685,7 +5685,7 @@ body[data-route='about'] .layout {
   display: none;
 }
 
-@media (max-width: 1240px) {
+@media (max-width: 1500px) {
   .install-top span {
     display: none;
   }

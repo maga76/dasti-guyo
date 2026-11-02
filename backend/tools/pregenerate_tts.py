@@ -36,7 +36,7 @@ def texts() -> list[str]:
         # Слова, фразы помощника и подсказки по особым буквам (их помощник тоже говорит вслух)
         speech = [w["text"] for w in data["words"]] + list(data["feedback"].values()) + [t["tg"] for t in data["tips"].values()]
     # Экран SOS: экстренные фразы должны звучать сразу и без сервера
-    sos_file = ROOT / "frontend" / "public" / "data" / "sos.json"
+    sos_file = ROOT / "frontend" / "src" / "data" / "sos.json"
     sos = [p["tj"] for p in json.loads(sos_file.read_text(encoding="utf-8"))["phrases"]] if sos_file.exists() else []
     return list(dict.fromkeys(words + phrases + rules + speech + sos))  # без повторов, порядок сохраняется
 

@@ -6,10 +6,10 @@
 //   - страница и словарь с сервера — сначала из сети, без сети — из кэша.
 // При изменении списка файлов увеличьте VERSION — старый кэш удалится.
 
-const VERSION = 'v4';
+const VERSION = 'v5'; // v5: новый значок
 const CACHE = `dasti-guyo-${VERSION}`;
 
-const PRECACHE = ['./', 'index.html', 'favicon.svg', 'data/phrases.json', 'data/quick-phrases.json', 'audio/tts/index.json'];
+const PRECACHE = ['./', 'index.html', 'favicon.svg?v=2', 'data/phrases.json', 'data/quick-phrases.json', 'audio/tts/index.json'];
 
 // Ответы API, которые полезно иметь без сети
 const API_CACHE = ['/api/v1/dictionary', '/api/v1/models/latest'];
