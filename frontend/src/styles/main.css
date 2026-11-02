@@ -264,6 +264,10 @@ svg:not(.chart-svg) {
 .lang-switch {
   display: inline-flex;
   gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 /* Профиль в шапке */
@@ -320,20 +324,32 @@ svg:not(.chart-svg) {
 }
 
 .lang-switch button {
-  min-width: 52px;
-  min-height: 44px;
+  min-width: 48px;
+  min-height: 38px;
   padding: 0 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 999px;
   background: transparent;
   color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
 }
 
-.lang-switch button[aria-pressed='true'] {
+.lang-switch button:hover {
   color: var(--text);
-  box-shadow: inset 0 -3px 0 var(--gold);
+}
+
+/* Выбранный язык — залитая половинка «таблетки» */
+.lang-switch button[aria-pressed='true'] {
+  background: var(--gold);
+  color: var(--gold-ink);
+  box-shadow: 0 2px 8px rgb(10 18 40 / 0.18);
 }
 
 /* ---------- Сетка ---------- */
@@ -4938,21 +4954,68 @@ body[data-route='support'] .layout {
 /* ---------- SOS ---------- */
 
 .sos-chip {
-  display: inline-grid;
-  place-items: center;
-  min-width: 52px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   min-height: 40px;
-  padding: 0 12px;
+  padding: 0 14px 0 12px;
   border-radius: 999px;
-  background: var(--red);
+  background: linear-gradient(180deg, #f0474e, #c8222a);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 4px 12px rgb(200 34 42 / 0.32);
   color: #fff;
+  font-size: 0.9rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-decoration: none;
+  transition:
+    transform 0.15s,
+    box-shadow 0.2s;
+}
+
+/* Белая точка «тревоги» с мягкой пульсацией */
+.sos-chip::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  animation: sos-pulse 1.8s ease-out infinite;
+}
+
+.sos-chip:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 6px 16px rgb(200 34 42 / 0.42);
+}
+
+.sos-chip:active {
+  transform: translateY(0);
 }
 
 .sos-chip[aria-current='page'] {
-  box-shadow: 0 0 0 3px var(--red-soft);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 0 0 3px rgb(200 34 42 / 0.25);
+}
+
+@keyframes sos-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0.7);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px rgb(255 255 255 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sos-chip::before {
+    animation: none;
+  }
 }
 
 body[data-route='sos'] .stage-col {
@@ -5598,9 +5661,9 @@ body[data-route='about'] .layout {
 
   .lang-switch button {
     min-width: 34px;
-    min-height: 36px;
-    padding: 0 4px;
-    font-size: 0.85rem;
+    min-height: 30px;
+    padding: 0 6px;
+    font-size: 0.82rem;
   }
 
   .user-chip {
@@ -5608,10 +5671,15 @@ body[data-route='about'] .layout {
   }
 
   .sos-chip {
-    min-width: 44px;
+    gap: 5px;
     min-height: 36px;
-    padding: 0 10px;
-    font-size: 0.85rem;
+    padding: 0 10px 0 9px;
+    font-size: 0.8rem;
+  }
+
+  .sos-chip::before {
+    width: 6px;
+    height: 6px;
   }
 }
 
