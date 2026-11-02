@@ -5714,14 +5714,13 @@ body[data-route='about'] .layout {
   display: none;
 }
 
-@media (max-width: 1500px) {
-  .install-top span {
-    display: none;
-  }
+/* Только значок со стрелкой (подпись — во всплывающей подсказке): шапке нужно место под длинные подписи */
+.install-top span {
+  display: none;
+}
 
-  .install-top {
-    padding: 0 10px;
-  }
+.install-top {
+  padding: 0 10px;
 }
 
 /* Ноутбук 1181–1366: вкладки, язык и профиль с именем должны помещаться в одну строку */
@@ -5744,4 +5743,47 @@ body[data-route='about'] .layout {
 /* «Онлайн» не показываем: значок нужен, только когда сети или сервера нет — освобождает место в шапке */
 .net-badge[data-state='online'] {
   display: none !important;
+}
+
+/* Шапка не прыгает при смене языка: подпись занимает место под самый длинный вариант.
+   Все варианты (data-i18n-w, ставит i18n.js) лежат невидимой строкой нулевой высоты. */
+:where([data-i18n-w]) {
+  display: inline-grid;
+  justify-items: center;
+}
+
+[data-i18n-w]::after {
+  content: attr(data-i18n-w);
+  height: 0;
+  overflow: clip; /* не hidden: с hidden браузер разрешает сжать строку до нуля */
+  visibility: hidden;
+  white-space: pre;
+}
+
+/* Активная вкладка жирнее — место берём под жирный вариант */
+.tabs [data-i18n-w]::after {
+  font-weight: 600;
+}
+
+/* 1181–1260: вкладки чуть плотнее — подписи под самый длинный язык должны поместиться */
+@media (min-width: 1181px) and (max-width: 1260px) {
+  .tabs a {
+    padding: 0 6px;
+    font-size: 0.85rem;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
+}
+
+/* Компьютер: промежутки в шапке чуть меньше — всё помещается и с полосой прокрутки сбоку */
+@media (min-width: 1261px) {
+  .topbar {
+    gap: 12px;
+  }
+
+  .tabs a {
+    padding: 0 10px;
+  }
 }

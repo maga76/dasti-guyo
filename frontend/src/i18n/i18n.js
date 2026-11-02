@@ -54,6 +54,13 @@ export function applyI18n(root = document) {
   document.documentElement.lang = lang;
   root.querySelectorAll('[data-i18n]').forEach((el) => {
     el.textContent = t(el.dataset.i18n);
+    // Шапка: место под самую длинную подпись из всех языков — при смене языка ничего не прыгает
+    // (сами варианты рисуются невидимо через ::after, см. main.css)
+    if (el.hasAttribute('data-i18n-steady')) {
+      el.dataset.i18nW = Object.values(dictionaries)
+        .map((d) => d[el.dataset.i18n] ?? '')
+        .join('\n');
+    }
   });
   root.querySelectorAll('[data-i18n-title]').forEach((el) => {
     el.title = t(el.dataset.i18nTitle);

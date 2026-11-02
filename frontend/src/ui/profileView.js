@@ -4,7 +4,7 @@
 //   - «Дониши ман»: какие жесты он уже знает (по тренажёру «Машқ»), история игр;
 //   - баллы и уровень, таблица лучших.
 
-import { getLang, onLangChange, t } from '../i18n/i18n.js';
+import { applyI18n, getLang, onLangChange, t } from '../i18n/i18n.js';
 import { ApiError, api, deleteAccount, getUser, login, loginWithGoogle, logout, onAuthChange, register } from '../api/api.js';
 import { syncSamples } from '../api/sync.js';
 import { flushPractice } from '../api/practiceSync.js';
@@ -64,10 +64,13 @@ export class ProfileView {
     if (user) {
       name.textContent = user.username;
       name.removeAttribute('data-i18n'); // смена языка не должна заменять имя
+      name.removeAttribute('data-i18n-steady');
+      name.removeAttribute('data-i18n-w');
       avatar.textContent = user.username.slice(0, 1).toUpperCase();
     } else {
       name.dataset.i18n = 'pf.signIn';
-      name.textContent = t('pf.signIn');
+      name.setAttribute('data-i18n-steady', '');
+      applyI18n(name.parentElement);
       avatar.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
     }
   }
