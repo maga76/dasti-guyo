@@ -3,6 +3,7 @@
 import '@fontsource-variable/noto-sans/wdth.css';
 import '@fontsource-variable/onest/index.css';
 import './styles/main.css';
+import './styles/chat.css';
 
 import { applyI18n, getLang, onLangChange, setLang, t } from './i18n/i18n.js';
 import { Camera, CameraError, checkCameraSupport } from './camera/camera.js';
@@ -27,6 +28,7 @@ import { SupportView } from './ui/supportView.js';
 import { TalkView } from './ui/talkView.js';
 import { SosView } from './ui/sosView.js';
 import { AboutView } from './ui/aboutView.js';
+import { ChatView } from './ui/chatView.js';
 import { initShell } from './ui/shell.js';
 import { initPasswordToggles } from './ui/passwordField.js';
 import { initNetworkBadge } from './ui/network.js';
@@ -71,6 +73,7 @@ const speechView = new SpeechView();
 const supportView = new SupportView();
 const sosView = new SosView();
 const aboutView = new AboutView();
+new ChatView();
 let lastRoute = null;
 initPasswordToggles();
 initShell();

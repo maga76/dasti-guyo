@@ -67,6 +67,12 @@ class Settings(BaseSettings):
     # Пусто — кнопки «Продолжить с Google» на сайте нет
     google_client_id: str = ""
 
+    # Чат-бот «Ёрдамчӣ» на сайте: бесплатный ключ Google Gemini с https://aistudio.google.com/apikey.
+    # Пусто — бот не отвечает на вопросы, но голосовые сообщения из текста всё равно делает
+    gemini_api_key: str = ""
+    # «Последняя Flash»: Google сам переводит на новую версию, когда старую выключает
+    gemini_model: str = "gemini-flash-latest"
+
     # Первый администратор (используется скриптом create_admin)
     first_admin_username: str = "admin"
     first_admin_password: str | None = None

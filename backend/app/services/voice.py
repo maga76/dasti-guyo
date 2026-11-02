@@ -23,19 +23,28 @@ from app.services.tts import TtsUnavailable, normalize
 VOICE = "uz-UZ-MadinaNeural"
 RATE = "-10%"  # чуть медленнее — чётче для тренажёра произношения
 VERSION = "m1"
+# Русский текст (голосовые сообщения чат-бота) — русский женский голос, без перевода в латиницу
+RU_VOICE = "ru-RU-SvetlanaNeural"
+# Голосовые сообщения длиннее отдельных слов; адрес запроса при этом не выходит за 8 КБ
+MAX_TEXT = 800
 
 
-def cache_key(text: str) -> str:
-    return hashlib.sha1(f"{VERSION}|{normalize(text)}".encode()).hexdigest()[:16]
+def cache_key(text: str, voice: str = "madina") -> str:
+    prefix = VERSION if voice == "madina" else f"{VERSION}|{voice}"  # старые файлы «Мадины» остаются
+    return hashlib.sha1(f"{prefix}|{normalize(text)}".encode()).hexdigest()[:16]
 
 
-async def _synthesize(text: str) -> bytes:
+async def _synthesize(text: str, voice: str = "madina") -> bytes:
     try:
         import edge_tts
     except ImportError as err:
         raise TtsUnavailable("edge-tts не установлен") from err
+    if voice == "ru":
+        speech = edge_tts.Communicate(text, RU_VOICE)
+    else:
+        speech = edge_tts.Communicate(to_latin(text), VOICE, rate=RATE)
     data = bytearray()
-    async for chunk in edge_tts.Communicate(to_latin(text), VOICE, rate=RATE).stream():
+    async for chunk in speech.stream():
         if chunk["type"] == "audio":
             data.extend(chunk["data"])
     if not data:
@@ -53,10 +62,10 @@ def synthesize(text: str) -> bytes:
         raise TtsUnavailable(str(err)) from err
 
 
-def _path(text: str) -> Path:
+def _path(text: str, voice: str = "madina") -> Path:
     folder = get_settings().media_dir / "voice"
     folder.mkdir(parents=True, exist_ok=True)
-    return folder / f"{cache_key(text)}.mp3"
+    return folder / f"{cache_key(text, voice)}.mp3"
 
 
 def _save(path: Path, data: bytes) -> None:
@@ -69,9 +78,9 @@ def _save(path: Path, data: bytes) -> None:
 _locks: dict[str, asyncio.Lock] = {}
 
 
-async def cached_mp3_async(text: str) -> Path:
-    """Для сайта: ждём сервис Microsoft, не занимая поток сервера."""
-    path = _path(text)
+async def cached_mp3_async(text: str, voice: str = "madina") -> Path:
+    """Для сайта: ждём сервис Microsoft, не занимая поток сервера. voice: madina | ru."""
+    path = _path(text, voice)
     if path.exists():
         return path
     key = path.stem
@@ -80,7 +89,7 @@ async def cached_mp3_async(text: str) -> Path:
         async with lock:
             if not path.exists():  # пока ждали, другой запрос мог уже озвучить
                 try:
-                    data = await _synthesize(text)
+                    data = await _synthesize(text, voice)
                 except TtsUnavailable:
                     raise
                 except Exception as err:  # сеть, ответ сервиса

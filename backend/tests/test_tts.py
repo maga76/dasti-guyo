@@ -86,7 +86,7 @@ def test_madina_voice_endpoint(client, monkeypatch):
 
     calls = []
 
-    async def fake_mp3(text):
+    async def fake_mp3(text, voice="madina"):
         calls.append(text)
         return b"ID3fake-mp3"
 
@@ -102,7 +102,7 @@ def test_madina_voice_endpoint(client, monkeypatch):
 def test_madina_falls_back_to_mms(client, monkeypatch):
     from app.services import voice
 
-    async def offline(text):
+    async def offline(text, voice="madina"):
         raise tts.TtsUnavailable()
 
     monkeypatch.setattr(voice, "_synthesize", offline)
@@ -118,10 +118,10 @@ def test_madina_same_text_at_once_is_voiced_once(tmp_path, monkeypatch):
 
     from app.services import voice
 
-    monkeypatch.setattr(voice, "_path", lambda text: tmp_path / "same.mp3")
+    monkeypatch.setattr(voice, "_path", lambda text, voice="madina": tmp_path / "same.mp3")
     calls = []
 
-    async def slow_mp3(text):
+    async def slow_mp3(text, voice="madina"):
         calls.append(text)
         await asyncio.sleep(0.05)
         return b"ID3slow"
@@ -138,3 +138,22 @@ def test_madina_same_text_at_once_is_voiced_once(tmp_path, monkeypatch):
 
 def test_unknown_voice_rejected(client):
     assert client.get(f"{API}/tts", params={"text": "Салом", "voice": "robot"}).status_code == 422
+
+
+def test_russian_voice_and_long_text(client, monkeypatch):
+    """voice=ru — русский голос (голосовые сообщения чат-бота); длинный текст MMS не берёт."""
+    from app.services import voice
+
+    calls = []
+
+    async def fake_mp3(text, voice="madina"):
+        calls.append(voice)
+        return b"ID3ru"
+
+    monkeypatch.setattr(voice, "_synthesize", fake_mp3)
+    res = client.get(f"{API}/tts", params={"text": "Привет, как дела?", "voice": "ru"})
+    assert res.status_code == 200 and res.content == b"ID3ru" and calls == ["ru"]
+    # Тот же текст «Мадиной» — отдельный файл, не русский из кэша
+    assert client.get(f"{API}/tts", params={"text": "Привет, как дела?", "voice": "madina"}).status_code == 200
+    assert calls == ["ru", "madina"]
+    assert client.get(f"{API}/tts", params={"text": "салом " * 80, "voice": "mms"}).status_code == 422

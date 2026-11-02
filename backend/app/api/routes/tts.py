@@ -17,20 +17,28 @@ CACHE = {"Cache-Control": "public, max-age=2592000"}
 
 @router.get("/tts", response_class=FileResponse, summary="Озвучить текст по-таджикски")
 async def speak(
-    text: Annotated[str, Query(min_length=1, max_length=tts.MAX_TEXT)],
-    voice_id: Annotated[Literal["mms", "madina"], Query(alias="voice")] = "mms",
+    text: Annotated[str, Query(min_length=1, max_length=voice.MAX_TEXT)],
+    voice_id: Annotated[Literal["mms", "madina", "ru"], Query(alias="voice")] = "mms",
 ):
     """voice=madina — женский голос «Мадина» (mp3), если не вышло — нейросеть MMS (wav).
+    voice=ru — русский женский голос (голосовые сообщения чат-бота на русском), запасного нет.
     Асинхронно: «Мадину» ждём у сервиса Microsoft, не занимая сервер; MMS считает долго —
     в отдельном потоке, чтобы остальные запросы не стояли."""
     if not tts.normalize(text):
         raise AppError(422, "tts_text")
+    if voice_id == "ru":
+        try:
+            return FileResponse(await voice.cached_mp3_async(text, "ru"), media_type="audio/mpeg", headers=CACHE)
+        except tts.TtsUnavailable:
+            raise AppError(503, "tts_unavailable") from None
     if voice_id == "madina":
         try:
             # Одинаковый текст всегда звучит одинаково — браузер может хранить файл долго
             return FileResponse(await voice.cached_mp3_async(text), media_type="audio/mpeg", headers=CACHE)
         except tts.TtsUnavailable:
             pass  # попробуем MMS
+    if len(text) > tts.MAX_TEXT:  # MMS считает долго — длинные тексты только «Мадиной»
+        raise AppError(422, "tts_text")
     try:
         path = await run_in_threadpool(tts.cached_wav, text)
     except tts.TtsUnavailable:
