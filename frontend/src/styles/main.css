@@ -5719,3 +5719,8 @@ body[data-route='about'] .layout {
     gap: 10px;
   }
 }
+
+/* «Онлайн» не показываем: значок нужен, только когда сети или сервера нет — освобождает место в шапке */
+.net-badge[data-state='online'] {
+  display: none !important;
+}
