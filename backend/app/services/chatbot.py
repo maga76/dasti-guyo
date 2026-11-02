@@ -5,14 +5,19 @@ GEMINI_API_KEY), в браузер не попадает. Запрос асин�
 сервер обслуживает других. Голосовые сообщения бот делает без Gemini — через /tts.
 """
 
+import time
+
 import httpx
 
 from app.core.config import get_settings
 from app.core.errors import AppError
 
 URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-TIMEOUT = 40
+# Всего ждём не дольше 50 с: nginx перед сервером обрывает запрос через 60 с
+DEADLINE = 50
 MAX_REPLY_TOKENS = 1024
+# Модель меньше «обдумывает» ответ — отвечает за секунды, а не за полминуты
+THINKING = {"thinkingLevel": "low"}
 
 SYSTEM = """Ты — «Ёрдамчӣ», ИИ-помощник сайта «Дасти Гӯё» (dastiguyo.king.tj).
 
@@ -45,26 +50,40 @@ async def reply(messages: list[tuple[str, str]]) -> str:
     settings = get_settings()
     if not settings.gemini_api_key:
         raise AppError(503, "chat_disabled")
-    body = {
-        "systemInstruction": {"parts": [{"text": SYSTEM}]},
-        "contents": [
-            {"role": "model" if role == "bot" else "user", "parts": [{"text": text}]} for role, text in messages
-        ],
-        "generationConfig": {"temperature": 0.6, "maxOutputTokens": MAX_REPLY_TOKENS},
-    }
-    try:
-        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-            res = await client.post(
-                URL.format(model=settings.gemini_model),
-                json=body,
-                headers={"x-goog-api-key": settings.gemini_api_key},
-            )
-    except httpx.HTTPError as e:
-        raise AppError(503, "chat_unavailable") from e
-    if res.status_code == 429:
-        raise AppError(429, "chat_unavailable")  # кончился бесплатный лимит Google на минуту или день
-    if res.status_code != 200:
-        raise AppError(503, "chat_unavailable")
+    contents = [{"role": "model" if role == "bot" else "user", "parts": [{"text": text}]} for role, text in messages]
+    models = [m.strip() for m in settings.gemini_models.split(",") if m.strip()]
+    end = time.monotonic() + DEADLINE
+    async with httpx.AsyncClient() as client:
+        for model in models:
+            res = await _ask(client, model, contents, settings.gemini_api_key, end)
+            if res is not None and res.status_code == 200:
+                return _text(res)
+            if time.monotonic() >= end:
+                break
+    raise AppError(503, "chat_unavailable")
+
+
+async def _ask(client: httpx.AsyncClient, model: str, contents: list, key: str, end: float) -> httpx.Response | None:
+    """Один вопрос одной модели. None — модель не ответила (тогда пробуем следующую)."""
+    config = {"temperature": 0.6, "maxOutputTokens": MAX_REPLY_TOKENS, "thinkingConfig": THINKING}
+    for _ in range(2):
+        left = end - time.monotonic()
+        if left <= 1:
+            return None
+        body = {"systemInstruction": {"parts": [{"text": SYSTEM}]}, "contents": contents, "generationConfig": config}
+        try:
+            res = await client.post(URL.format(model=model), json=body, headers={"x-goog-api-key": key}, timeout=left)
+        except httpx.HTTPError:
+            return None
+        # Модель не знает такой настройки «обдумывания» — спрашиваем её же без неё
+        if res.status_code == 400 and "thinkingConfig" in config:
+            config = {k: v for k, v in config.items() if k != "thinkingConfig"}
+            continue
+        return res if res.status_code == 200 else None
+    return None
+
+
+def _text(res: httpx.Response) -> str:
     try:
         parts = res.json()["candidates"][0]["content"]["parts"]
         # «Мысли» модели (thought) не показываем — только сам ответ

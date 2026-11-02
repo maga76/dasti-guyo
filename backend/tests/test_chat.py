@@ -46,3 +46,26 @@ def test_gemini_down_and_validation(client, monkeypatch):
     assert res.status_code == 503 and res.json()["code"] == "chat_unavailable"
     assert client.post(f"{API}/chat", json={"messages": []}).status_code == 422
     assert client.post(f"{API}/chat", json={"messages": [{"role": "admin", "text": "x"}]}).status_code == 422
+
+
+def test_busy_model_falls_back_to_next(client, monkeypatch):
+    """Первая модель перегружена (503), вторая не знает настройки «обдумывания» (400) — отвечает она же без неё."""
+    monkeypatch.setattr(get_settings(), "gemini_api_key", "test-key")
+    monkeypatch.setattr(get_settings(), "gemini_models", "busy-model, old-model")
+    asked = []
+
+    def handler(request: httpx.Request):
+        model = request.url.path.split("/")[-1].split(":")[0]
+        thinking = "thinkingConfig" in request.read().decode()
+        asked.append((model, thinking))
+        if model == "busy-model":
+            return httpx.Response(503, json={"error": {"message": "high demand"}})
+        if thinking:
+            return httpx.Response(400, json={"error": {"message": "thinking not supported"}})
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "Ҷавоб"}]}}]})
+
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(chatbot.httpx, "AsyncClient", lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw))
+    res = client.post(f"{API}/chat", json={"messages": [{"role": "user", "text": "Салом"}]})
+    assert res.status_code == 200 and res.json() == {"reply": "Ҷавоб"}
+    assert asked == [("busy-model", True), ("old-model", True), ("old-model", False)]
