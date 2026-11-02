@@ -367,21 +367,6 @@ const problem = checkCameraSupport();
 if (problem) showCameraError(problem);
 else showWelcome();
 
-// ---------- Режим показа (для проектора на защите) ----------
-
-function setPresent(on) {
-  document.body.classList.toggle('present', on);
-  const btn = $('btnPresent');
-  btn.setAttribute('aria-pressed', String(on));
-  btn.dataset.i18nTitle = btn.dataset.i18nAriaLabel = on ? 'present.off' : 'present.on';
-  btn.title = t(btn.dataset.i18nTitle);
-  if (on && location.hash !== '#/' && location.hash !== '') location.hash = '#/';
-}
-$('btnPresent').addEventListener('click', () => setPresent(!document.body.classList.contains('present')));
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && document.body.classList.contains('present') && $('bigText').hidden) setPresent(false);
-});
-
 // ---------- Работа без интернета ----------
 
 // Service Worker только в собранной версии: в режиме разработки он мешал бы обновлениям

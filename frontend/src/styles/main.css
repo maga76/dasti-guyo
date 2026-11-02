@@ -1974,47 +1974,6 @@ body[data-route='avatar'] .layout {
   color: var(--red);
 }
 
-.present-btn[aria-pressed='true'] {
-  background: var(--gold);
-  color: var(--gold-ink);
-  box-shadow: none;
-}
-
-/* Режим показа: только видео, слово и предложение — крупно, для проектора */
-body.present .tabs,
-body.present .footer,
-body.present .tech,
-body.present .privacy,
-body.present .vocab,
-body.present .demo,
-body.present .settings,
-body.present .reply,
-body.present .quick,
-body.present .stage-toolbar .tool-fps {
-  display: none !important;
-}
-
-body.present .layout {
-  max-width: none;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-}
-
-body.present .stage {
-  max-width: calc(80dvh * var(--ar));
-}
-
-body.present .readout {
-  min-height: 46dvh;
-}
-
-body.present .readout-word {
-  font-size: clamp(4rem, 9vw, 9rem);
-}
-
-body.present .sentence-text {
-  font-size: clamp(2rem, 3.5vw, 3.2rem);
-}
-
 /* ---------- Страница «Идоракунӣ» ---------- */
 
 body[data-route='admin'] .stage-col {
@@ -2866,11 +2825,6 @@ body[data-route='model'] .layout {
     padding: 0 14px;
     white-space: nowrap;
     scroll-snap-align: start;
-  }
-
-  /* Режим показа нужен для проектора, на телефоне — лишний */
-  .present-btn {
-    display: none;
   }
 
   .stage {
@@ -5634,8 +5588,7 @@ body[data-route='about'] .layout {
   }
 
   /* На телефоне места мало: значок связи — только когда интернета нет совсем */
-  .net-badge:not([data-state='offline']),
-  .present-btn {
+  .net-badge:not([data-state='offline']) {
     display: none !important;
   }
 
