@@ -2,6 +2,7 @@
 
 import '@fontsource-variable/noto-sans/wdth.css';
 import '@fontsource-variable/onest/index.css';
+import '@fontsource-variable/geologica/crsv.css';
 import './styles/main.css';
 import './styles/chat.css';
 

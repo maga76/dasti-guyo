@@ -11,10 +11,10 @@
   height: 60px;
   border: 0;
   border-radius: 50%;
-  background: linear-gradient(145deg, #3d6ef5, #1d46be 60%, #0f2a80);
+  background: linear-gradient(145deg, var(--lapis-light), var(--lapis) 60%, var(--lapis-deep));
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.25),
-    0 10px 28px rgb(29 70 190 / 0.4);
+    0 10px 28px rgb(34 56 184 / 0.4);
   color: #fff;
   cursor: pointer;
   transition:
@@ -26,7 +26,7 @@
   transform: translateY(-2px) scale(1.04);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.25),
-    0 14px 34px rgb(29 70 190 / 0.5);
+    0 14px 34px rgb(34 56 184 / 0.5);
 }
 
 .chat-fab[hidden] {
@@ -52,7 +52,7 @@
   height: 12px;
   border: 2px solid #fff;
   border-radius: 50%;
-  background: #ffc233;
+  background: var(--zar);
 }
 
 .chat-fab.seen .chat-fab-dot {
@@ -93,7 +93,7 @@
   align-items: center;
   gap: 10px;
   padding: 14px 12px 14px 16px;
-  background: linear-gradient(135deg, #1d46be, #2f5ad8);
+  background: linear-gradient(135deg, var(--lapis), var(--lapis-light));
   color: #fff;
 }
 
@@ -111,7 +111,7 @@
 .chat-ava svg {
   width: 22px;
   height: 22px;
-  fill: #ffc233;
+  fill: var(--zar);
   stroke: none;
 }
 
@@ -204,7 +204,7 @@
 
 .chat-msg.user .chat-bubble {
   border-radius: 18px 18px 6px 18px;
-  background: #1d46be;
+  background: var(--lapis);
   box-shadow: none;
   color: #fff;
 }
@@ -328,7 +328,7 @@
   height: 42px;
   border: 0;
   border-radius: 50%;
-  background: #1d46be;
+  background: var(--lapis);
   color: #fff;
   cursor: pointer;
 }
@@ -367,7 +367,7 @@
 }
 
 .vm-wave i.on {
-  background: #3d6ef5;
+  background: var(--lapis-light);
 }
 
 .vm-time {
@@ -446,7 +446,7 @@
   height: 42px;
   border: 0;
   border-radius: 50%;
-  background: #1d46be;
+  background: var(--lapis);
   color: #fff;
   cursor: pointer;
 }

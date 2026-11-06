@@ -1,68 +1,80 @@
 /* Дасти Гӯё — стили.
    Идея: два «экрана» рядом — камера и слово, которое видит сайт.
-   Стиль — как у king.tj: шрифт Onest, тёплая бумага днём и тёмно-синяя ночь, карточки с тонкой
-   рамкой, главная кнопка — синяя (ночью — белая), тонкая золотая линия сверху и в подвале,
-   у цифр — полоски цветов флага. «Экраны» (камера, табло, учитель) всегда тёмно-синие. */
+   Образ «Лазурит и золото»: синий бадахшанский лазурит — главный цвет, золото таджикской
+   вышивки — акценты, фон — холодный фарфор (днём) и ночной лазурит (ночью).
+   Заголовки — Geologica (есть все таджикские буквы), текст — Onest.
+   «Экраны» (камера, табло, учитель) всегда тёмно-синие, главная кнопка на них — золотая. */
 
 :root {
-  --bg: #f6f2ea;
-  --surface: #fffcf6;
-  --surface-2: #f1ece2;
-  --text: #11182a;
-  --muted: #565b6c;
-  --line: #ded6c8;
-  --screen: #0a1228; /* фон видео и табло со словом */
-  --screen-text: #ecf0f8;
-  --screen-muted: #a0acc8;
-  /* --gold — главное действие и выделение (имя осталось от прежнего дизайна) */
-  --gold: #1d46be;
-  --gold-hover: #2453d6;
+  /* Постоянные цвета бренда — одинаковые в обеих темах */
+  --lapis: #2238b8;
+  --lapis-light: #3a55e6;
+  --lapis-deep: #13206e;
+  --zar: #f2be4a;
+  --zar-light: #ffd877;
+  --zar-deep: #e8a72c;
+  --zar-ink: #1a1300;
+
+  --bg: #f3f5fa;
+  --surface: #ffffff;
+  --surface-2: #e8ecf6;
+  --text: #0e1633;
+  --muted: #4e5878;
+  --line: #d6ddee;
+  --screen: #0b1236; /* фон видео и табло со словом */
+  --screen-line: #1f2a63;
+  --screen-text: #eef1fb;
+  --screen-muted: #a3acd0;
+  /* --gold — главное действие и выделение (имя осталось от прежнего дизайна): днём — лазурит */
+  --gold: var(--lapis);
+  --gold-hover: #2c46d4;
   --gold-ink: #ffffff;
-  --accent: #1d46be;
-  --gold-line: #caa052;
+  --accent: var(--lapis);
+  --gold-line: var(--zar-deep);
   --green: #15803d;
   --green-soft: rgb(21 128 61 / 0.1);
   --red: #c8222a;
   --red-soft: rgb(200 34 42 / 0.08);
   --flag-red: #c8222a;
-  --flag-white: #d6d0c4;
+  --flag-white: #cfd6e6;
   --flag-green: #15803d;
-  --focus: #1d46be;
+  --focus: var(--lapis);
   --hand-left: #5ec8e5;
   --hand-right: #f2b233;
   /* Серии графиков — проверены валидатором палитры (различимы при дальтонизме) */
   --series-1: #2f6fec;
   --series-2: #b07800;
-  --r-lg: 16px;
+  --r-lg: 18px;
   --r-md: 12px;
-  --shadow: 0 1px 2px rgb(60 45 20 / 0.05), 0 8px 24px -12px rgb(60 45 20 / 0.12);
+  --shadow: 0 1px 2px rgb(14 22 51 / 0.05), 0 10px 28px -14px rgb(19 32 110 / 0.18);
   --font: 'Onest Variable', 'Onest', 'Noto Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: var(--font);
+  --font-display: 'Geologica Variable', 'Geologica', var(--font);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #070d1e;
-    --surface: #0c152e;
-    --surface-2: #101b38;
-    --text: #ecf0f8;
-    --muted: #a0acc8;
-    --line: #1e2d52;
-    --screen: #0a1228;
-    --gold: #ecf0f8;
-    --gold-hover: #ffffff;
-    --gold-ink: #0a1228;
-    --accent: #84a4ff;
-    --gold-line: #deb86e;
+    --bg: #080c24;
+    --surface: #0f1534;
+    --surface-2: #151d44;
+    --text: #eef1fb;
+    --muted: #a3acd0;
+    --line: #232c5c;
+    --screen: #0b1236;
+    /* Ночью главное действие — золото на лазурите, как на логотипе */
+    --gold: var(--zar);
+    --gold-hover: var(--zar-light);
+    --gold-ink: var(--zar-ink);
+    --accent: #9db1ff;
+    --gold-line: var(--zar-deep);
     --green: #4ade80;
     --green-soft: rgb(74 222 128 / 0.12);
     --red: #fc6e6e;
     --red-soft: rgb(252 110 110 / 0.12);
     --flag-red: #e0353d;
-    --flag-white: #ecf0f8;
+    --flag-white: #eef1fb;
     --flag-green: #22a35a;
-    --focus: #84a4ff;
+    --focus: var(--zar);
     --series-1: #5b8ef0;
     --series-2: #b8820f;
     --shadow: none;
@@ -1473,8 +1485,8 @@ body[data-route='avatar'] .layout {
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(ellipse 34% 44% at 50% 36%, rgb(132 164 255 / 0.18), transparent 70%),
-    radial-gradient(ellipse 85% 75% at 50% 28%, #1a2a55 0%, #0c152e 55%, #050a18 100%);
+    radial-gradient(ellipse 34% 44% at 50% 36%, rgb(110 140 255 / 0.2), transparent 70%),
+    radial-gradient(ellipse 85% 75% at 50% 28%, #1b2b78 0%, #0d1544 55%, #060a22 100%);
   box-shadow:
     0 30px 80px -30px rgb(5 9 22 / 0.7),
     inset 0 0 0 1px rgb(255 255 255 / 0.06);
@@ -1566,7 +1578,7 @@ body[data-route='avatar'] .layout {
 
 .av-speed button[aria-pressed='true'] {
   background: #fff;
-  color: #0a1228;
+  color: var(--screen);
 }
 
 /* Выбор аватара — слева сверху, под значком */
@@ -1600,7 +1612,7 @@ body[data-route='avatar'] .layout {
 
 .av-pick button[aria-pressed='true'] {
   background: #fff;
-  color: #0a1228;
+  color: var(--screen);
 }
 
 .av-pick button:disabled {
@@ -1719,7 +1731,7 @@ body[data-route='avatar'] .layout {
 
 .av-token.is-current {
   background: var(--hand-right);
-  color: #0a1228;
+  color: var(--screen);
   transform: translateY(-2px);
 }
 
@@ -3580,7 +3592,7 @@ body[data-route='speech'] .layout {
 }
 
 .sp-teacher .t-eyes {
-  fill: #0a1228;
+  fill: var(--screen);
   transform-box: fill-box;
   transform-origin: center;
   animation: sp-blink 5s infinite;
@@ -3593,13 +3605,13 @@ body[data-route='speech'] .layout {
 
 .sp-teacher .t-smile {
   fill: none;
-  stroke: #0a1228;
+  stroke: var(--screen);
   stroke-width: 4;
   stroke-linecap: round;
 }
 
 .sp-teacher .t-mouth {
-  fill: #0a1228;
+  fill: var(--screen);
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
@@ -4435,9 +4447,12 @@ h1 {
 .brand-name {
   font-size: 1.15rem;
   font-weight: 700;
+  /* Слово-логотип — «курсивная» Geologica: мягкие, почти рукописные изгибы */
+  font-variation-settings: 'CRSV' 1;
+  letter-spacing: -0.02em;
 }
 
-/* Внутри тёмных «экранов» выделение всегда светлое — как в ночной теме king.tj */
+/* Внутри тёмных «экранов» главная кнопка и выделение — золотые, как звезда на логотипе */
 .stage,
 .readout,
 .model-hero,
@@ -4445,10 +4460,10 @@ h1 {
 .sp-stage,
 .bigtext,
 .av-stage {
-  --gold: #ecf0f8;
-  --gold-hover: #ffffff;
-  --gold-ink: #0a1228;
-  border: 1px solid #1e2d52;
+  --gold: var(--zar);
+  --gold-hover: var(--zar-light);
+  --gold-ink: var(--zar-ink);
+  border: 1px solid var(--screen-line);
 }
 
 /* Карточки — с тонкой рамкой и мягкой тенью днём */
@@ -4460,7 +4475,7 @@ h1 {
   box-shadow: var(--shadow), inset 0 0 0 1px var(--line);
 }
 
-/* Цифры с полосками цветов флага слева, как на king.tj */
+/* Цифры с полосками цветов флага слева */
 .model-fact,
 .sp-stats div {
   border-radius: 10px;
@@ -4481,9 +4496,9 @@ h1 {
   box-shadow: inset 3px 0 0 var(--flag-green);
 }
 
-/* Кнопка разговора — синяя, как главные кнопки king.tj */
+/* Кнопка разговора — лазурит */
 .sp-dialog {
-  background: #345cd2;
+  background: var(--lapis-light);
   color: #fff;
 }
 
@@ -5095,7 +5110,8 @@ body[data-route='sos'] .layout {
 
 .sos-btn.is-bad,
 .sos-btn.is-ambulance {
-  background: var(--red);
+  /* Заливка — всегда тёмно-красная (гранат): белый текст читается и ночью */
+  background: linear-gradient(180deg, #d93a42, #b81d25);
   box-shadow: none;
   color: #fff;
 }
@@ -5162,7 +5178,7 @@ body[data-route='about'] .layout {
   padding: 28px 32px;
   border-radius: var(--r-lg);
   background: var(--screen);
-  border: 1px solid #1e2d52;
+  border: 1px solid var(--screen-line);
   color: var(--screen-text);
 }
 
@@ -5184,8 +5200,8 @@ body[data-route='about'] .layout {
 }
 
 .about-install .btn {
-  background: #ecf0f8;
-  color: #0a1228;
+  background: var(--zar);
+  color: var(--zar-ink);
 }
 
 .about-install-hint,
@@ -5204,7 +5220,7 @@ body[data-route='about'] .layout {
   padding: 14px;
   border-radius: var(--r-md);
   background: #fff;
-  color: #0a1228;
+  color: var(--screen);
   text-align: center;
 }
 
@@ -5471,8 +5487,8 @@ body[data-route='about'] .layout {
   margin: 4px 12px 8px;
   padding: 12px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #1d46be, #345cd2);
-  box-shadow: 0 10px 30px -10px rgb(29 70 190 / 0.6);
+  background: linear-gradient(135deg, var(--lapis), var(--lapis-light));
+  box-shadow: 0 10px 30px -10px rgb(34 56 184 / 0.6);
   color: #fff;
 }
 
@@ -5494,8 +5510,8 @@ body[data-route='about'] .layout {
 
 .install-go {
   flex: none;
-  background: #fff;
-  color: #1d46be;
+  background: var(--zar);
+  color: var(--zar-ink);
 }
 
 .install-close {
@@ -5785,5 +5801,39 @@ body[data-route='about'] .layout {
 
   .tabs a {
     padding: 0 10px;
+  }
+}
+
+/* Значок связи («Бе сервер», «Офлайн») — не в шапке, а плашкой в левом нижнем углу:
+   появляется только при проблемах и не сдвигает шапку */
+.net-badge {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 44;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  box-shadow: 0 8px 24px -10px rgb(14 22 51 / 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.net-badge::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.net-badge[data-state='noServer'] {
+  background: color-mix(in srgb, var(--zar) 30%, var(--surface));
+}
+
+@media (max-width: 720px) {
+  .net-badge {
+    left: 12px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
   }
 }
