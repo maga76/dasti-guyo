@@ -1,0 +1,7 @@
+# Дасти Гӯё — тарҷумони ройгони забони имо
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /media/
+
+Sitemap: https://dastiguyo.king.tj/sitemap.xml

@@ -11,10 +11,14 @@ function assetRef() {
   try {
     const cwd = fileURLToPath(new URL('.', import.meta.url));
     // privacy.html и значок — мелочи, их правки не должны менять адрес тяжёлых файлов на CDN
-    return execSync('git log -1 --format=%H -- public ":(exclude)public/privacy.html" ":(exclude)public/favicon.svg"', {
-      cwd,
-      encoding: 'utf8',
-    }).trim();
+    return execSync(
+      'git log -1 --format=%H -- public ":(exclude)public/privacy.html" ":(exclude)public/favicon.svg" ' +
+        '":(exclude)public/robots.txt" ":(exclude)public/sitemap.xml" ":(exclude)public/og.png"',
+      {
+        cwd,
+        encoding: 'utf8',
+      },
+    ).trim();
   } catch {
     return '';
   }
@@ -23,13 +27,29 @@ const mediapipeVersion = JSON.parse(
   readFileSync(new URL('./node_modules/@mediapipe/tasks-vision/package.json', import.meta.url), 'utf8'),
 ).version;
 
+// Поисковики и превью ссылок (Telegram, WhatsApp) часто не запускают JavaScript и видели бы
+// пустые подписи. При сборке вписываем в index.html таджикский текст всех data-i18n="ключ" —
+// сайт после загрузки всё равно подставит выбранный язык (src/i18n/i18n.js).
+function prefillI18n() {
+  const tg = JSON.parse(readFileSync(new URL('./src/i18n/tg.json', import.meta.url), 'utf8'));
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return {
+    name: 'prefill-i18n',
+    transformIndexHtml(html) {
+      return html.replace(/(<([a-z0-9]+)\b[^>]*\sdata-i18n="([^"]+)"[^>]*>)(<\/\2>)/g, (all, open, tag, key, close) =>
+        typeof tg[key] === 'string' && !tg[key].includes('{') ? open + esc(tg[key]) + close : all,
+      );
+    },
+  };
+}
+
 // HTTPS=1 (npm run dev:phone) — сайт по HTTPS, чтобы камера работала на телефоне
 // в той же Wi-Fi сети. Сертификат самоподписанный: браузер предупредит, это нормально.
 const https = process.env.HTTPS === '1';
 const backend = process.env.BACKEND_URL || 'http://localhost:8000';
 
 export default defineConfig({
-  plugins: https ? [basicSsl()] : [],
+  plugins: [prefillI18n(), ...(https ? [basicSsl()] : [])],
   define: {
     __ASSET_REF__: JSON.stringify(assetRef()),
     __MEDIAPIPE_VERSION__: JSON.stringify(mediapipeVersion),
