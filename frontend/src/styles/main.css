@@ -5837,3 +5837,109 @@ body[data-route='about'] .layout {
     bottom: calc(80px + env(safe-area-inset-bottom));
   }
 }
+
+/* ---------- «Разговор»: две равные половины — глухой (камера) и слышащий (аватар) ---------- */
+
+@media (min-width: 981px) {
+  body[data-route='talk'] .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  /* Камера не выше, чем аватар с перепиской рядом */
+  body[data-route='talk'] .stage {
+    max-width: calc(60dvh * var(--ar));
+  }
+
+  /* Кнопка камеры уже есть на самом экране камеры — вторая не нужна */
+  body[data-route='talk'] #talkCamera {
+    display: none;
+  }
+}
+
+.talk-avatar .av-stage {
+  height: min(44dvh, 420px);
+  min-height: 280px;
+  border-radius: var(--r-lg);
+}
+
+/* Значок «Голос → Жесты» повторяет заголовок и закрывал голову аватара */
+.talk-avatar .av-badge {
+  display: none;
+}
+
+.talk-avatar .av-top {
+  top: 12px;
+  right: 12px;
+  left: auto;
+}
+
+.talk-avatar .av-speed button {
+  min-width: 44px;
+  min-height: 32px;
+  font-size: 0.78rem;
+}
+
+.talk-avatar .av-caption {
+  left: 18px;
+  right: 76px;
+  bottom: 16px;
+}
+
+/* Подсказка до первой фразы — тихая строка внизу, а не огромный заголовок поверх аватара */
+.talk-avatar .av-word.is-idle {
+  max-width: 24em;
+  margin: 0;
+  color: rgb(255 255 255 / 0.72);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
+.talk-avatar .av-replay {
+  right: 14px;
+  bottom: 14px;
+  width: 44px;
+  height: 44px;
+}
+
+/* «Жестами сейчас»: пока жестов нет — одна строка */
+.talk-live.is-empty {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.talk-live.is-empty p {
+  font-size: 0.9rem;
+}
+
+.talk-feed {
+  min-height: 0;
+}
+
+.talk-empty {
+  padding: 20px 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+  font-size: 0.95rem;
+}
+
+.talk-input input {
+  min-width: 140px;
+}
+
+/* «Разговор» — сам переписка: круглая кнопка ИИ-чата здесь лишняя и закрывала «Отправить» */
+body[data-route='talk'] .chat-fab {
+  display: none;
+}
+
+/* Телефон: аватар узкий — кнопки скорости закрывали бы голову (остаётся обычная скорость 1×) */
+@media (max-width: 600px) {
+  .talk-avatar .av-top {
+    display: none;
+  }
+}
