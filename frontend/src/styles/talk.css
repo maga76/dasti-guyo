@@ -1,0 +1,592 @@
+/* ---------- «Разговор» — как видеозвонок ----------
+   Весь экран — аватар (слышащий говорит, аватар показывает жестами), камера глухого — окошко
+   в углу, переписка и кнопки лежат поверх видео. Экран всегда тёмный, в обеих темах. */
+
+body[data-route='talk'] .layout {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-route='talk'] .privacy,
+body[data-route='talk'] .tech,
+body[data-route='talk'] .chat-fab {
+  display: none;
+}
+
+.talk-call {
+  --text: var(--screen-text);
+  --muted: var(--screen-muted);
+  --line: rgb(255 255 255 / 0.14);
+  --surface: rgb(255 255 255 / 0.08);
+  --gold: var(--zar);
+  --gold-hover: var(--zar-light);
+  --gold-ink: var(--zar-ink);
+  --accent: var(--lapis);
+  --focus: var(--zar);
+  --red: #ff9a9a;
+  --glass: rgb(7 12 40 / 0.68);
+  position: relative;
+  height: clamp(520px, calc(100dvh - 104px), 860px);
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 24px;
+  background: var(--screen);
+  box-shadow: 0 30px 80px -30px rgb(5 9 22 / 0.7);
+  color: var(--screen-text);
+  color-scheme: dark;
+}
+
+/* Сцена аватара (приезжает сюда из экрана «Ба имо», см. talkView.js) */
+.talk-avatar {
+  position: absolute;
+  inset: 0;
+}
+
+.talk-avatar .av-stage {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Фигура — над панелью кнопок: руки аватара не должны уходить под неё */
+.talk-avatar .av-canvas {
+  bottom: auto;
+  height: calc(100% - 84px);
+  /* Низ фигуры растворяется, а не обрывается ровной линией */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
+}
+
+.talk-avatar .av-badge,
+.talk-avatar .av-pick,
+.talk-avatar .av-inset,
+.talk-avatar .av-replay,
+.talk-avatar .av-word.is-idle {
+  display: none;
+}
+
+.talk-avatar .av-top {
+  top: 70px;
+  right: auto;
+  left: 16px;
+}
+
+.talk-avatar .av-speed button {
+  min-width: 44px;
+  min-height: 32px;
+  font-size: 0.78rem;
+}
+
+/* Субтитры жестов аватара — справа, на свободном месте: руки в центре ничем не закрыты */
+.talk-avatar .av-caption {
+  right: 24px;
+  bottom: 96px;
+  left: auto;
+  width: 26%;
+  text-align: right;
+}
+
+.talk-avatar .av-word {
+  font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+}
+
+.talk-avatar .av-tokens {
+  justify-content: flex-end;
+}
+
+/* Камера глухого — окошко в правом верхнем углу звонка */
+body[data-route='talk'] .stage-col {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  z-index: 6;
+  width: clamp(200px, 20vw, 280px);
+}
+
+body[data-route='talk'] .stage,
+body[data-route='talk'] .stage:has(> .stage-message:not([hidden])) {
+  max-width: none;
+  min-height: 0;
+  aspect-ratio: var(--ar);
+  border: 0;
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 0.22),
+    0 14px 34px rgb(0 0 20 / 0.5);
+}
+
+body[data-route='talk'] .stage-message {
+  gap: 8px;
+  padding: 10px;
+}
+
+body[data-route='talk'] .stage-message:not(.is-error) :is(.stage-message-title, .stage-message-text) {
+  display: none;
+}
+
+body[data-route='talk'] .stage-message-icon {
+  width: 40px;
+  height: 40px;
+}
+
+body[data-route='talk'] .stage-message-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+body[data-route='talk'] .stage-message-actions {
+  margin-top: 0;
+}
+
+body[data-route='talk'] .stage-message .btn {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+}
+
+/* Ошибка камеры должна читаться: окошко на это время шире и с текстом */
+body[data-route='talk'] .stage-col:has(.stage-message.is-error:not([hidden])) {
+  width: min(340px, calc(100% - 64px));
+}
+
+body[data-route='talk'] .stage:has(> .stage-message.is-error:not([hidden])) {
+  min-height: 220px;
+  aspect-ratio: auto;
+}
+
+body[data-route='talk'] .stage-message.is-error .stage-message-title {
+  font-size: 1rem;
+}
+
+body[data-route='talk'] .stage-message.is-error .stage-message-text {
+  font-size: 0.85rem;
+}
+
+body[data-route='talk'] .stage-toolbar {
+  right: 6px;
+  bottom: 6px;
+  left: 6px;
+  gap: 4px;
+}
+
+body[data-route='talk'] .tool {
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+body[data-route='talk'] .tool svg {
+  width: 18px;
+  height: 18px;
+}
+
+body[data-route='talk'] .tool-toggle,
+body[data-route='talk'] .tool-fps,
+body[data-route='talk'] #btnStop span {
+  display: none;
+}
+
+/* Слой поверх видео: сверху заголовок, снизу переписка и кнопки. Клики между ними — к сцене */
+.talk-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  pointer-events: none;
+}
+
+.talk-ui > * {
+  pointer-events: auto;
+}
+
+.talk-bar {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 10px;
+  margin-bottom: auto;
+}
+
+.talk-bar h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  text-shadow: 0 2px 14px rgb(0 0 20 / 0.6);
+}
+
+.talk-round {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--screen-text);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+}
+
+.talk-round:hover {
+  background: rgb(7 12 40 / 0.88);
+}
+
+.talk-round svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Переписка — слева, старые сообщения растворяются кверху */
+.talk-feed {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 1;
+  align-self: flex-start;
+  gap: 8px;
+  width: clamp(240px, 28%, 360px);
+  min-height: 0;
+  max-height: 44%;
+  margin: 0;
+  padding: 24px 2px 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+  mask-image: linear-gradient(to bottom, transparent, #000 24px);
+}
+
+.talk-msg {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 92%;
+  padding: 9px 13px;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.talk-msg p {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.talk-msg small {
+  color: var(--muted);
+}
+
+.talk-who {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+/* Все сообщения — у левого края, подальше от рук аватара; кто говорит, видно по цвету и подписи */
+.talk-msg.is-deaf {
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.talk-msg.is-hearing {
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+  background: var(--lapis);
+  color: #fff;
+}
+
+.talk-msg.is-hearing .talk-who {
+  color: rgb(255 255 255 / 0.75);
+}
+
+.talk-replay {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.talk-empty {
+  flex: none;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--glass);
+  color: var(--screen-text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  backdrop-filter: blur(10px);
+}
+
+/* «Жестами сейчас» — как субтитры глухого */
+.talk-live {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  gap: 6px 10px;
+  max-width: min(720px, 100%);
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: var(--glass);
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.talk-live-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.talk-live p {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.talk-live.is-empty p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+#talkStatus {
+  align-self: center;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: var(--glass);
+  color: var(--red);
+  font-size: 0.88rem;
+}
+
+#talkStatus:empty {
+  display: none;
+}
+
+/* Панель звонка: микрофон, язык, текст, отправить */
+.talk-input {
+  display: flex;
+  flex: none;
+  align-items: center;
+  align-self: center;
+  gap: 8px;
+  width: min(860px, 100%);
+  padding: 8px;
+  border-radius: 999px;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--line);
+  backdrop-filter: blur(14px);
+}
+
+.talk-mic {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--zar);
+  color: var(--zar-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.talk-mic:hover {
+  background: var(--zar-light);
+}
+
+.talk-mic svg {
+  width: 20px;
+  height: 20px;
+}
+
+.talk-mic.is-listening {
+  background: #c8222a;
+  color: #fff;
+}
+
+.talk-input select,
+.talk-input input {
+  min-width: 0;
+  min-height: 46px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--screen-text);
+  font: inherit;
+}
+
+.talk-input select {
+  flex: none;
+  padding: 0 10px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.talk-input input {
+  flex: 1;
+  padding: 0 18px;
+  background: rgb(255 255 255 / 0.08);
+}
+
+.talk-input input::placeholder {
+  color: var(--screen-muted);
+}
+
+.talk-send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--lapis-light);
+  color: #fff;
+  cursor: pointer;
+}
+
+.talk-send:hover {
+  background: var(--lapis);
+}
+
+.talk-send svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Компьютер: кнопка камеры есть в самом окошке — строка «камера выключена» не нужна */
+@media (min-width: 721px) {
+  #talkCamera {
+    display: none;
+  }
+
+  .talk-live.is-empty:has(#talkCamera:not([hidden])) {
+    display: none;
+  }
+}
+
+/* Телефон: звонок на всю высоту между шапкой и нижним меню, окошко камеры маленькое */
+@media (max-width: 720px) {
+  .talk-call {
+    height: calc(100dvh - 148px - env(safe-area-inset-bottom));
+    min-height: 460px;
+    border-radius: 18px;
+  }
+
+  .talk-ui {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  body[data-route='talk'] .stage-col {
+    top: 18px;
+    right: 26px;
+    width: 104px;
+  }
+
+  body[data-route='talk'] .stage-message:not(.is-error) .stage-message-actions {
+    display: none;
+  }
+
+  .talk-avatar .av-caption {
+    top: 62px;
+    right: 124px;
+    bottom: auto;
+    left: 12px;
+    width: auto;
+    text-align: left;
+  }
+
+  .talk-avatar .av-canvas {
+    height: calc(100% - 120px);
+  }
+
+  .talk-avatar .av-tokens {
+    display: none;
+  }
+
+  /* Телефон: переписка компактная, чтобы не закрывать аватара; повтор жестов — на компьютере */
+  .talk-feed {
+    width: 66%;
+    max-height: 20%;
+  }
+
+  .talk-msg {
+    padding: 6px 11px;
+  }
+
+  .talk-msg p {
+    font-size: 0.92rem;
+  }
+
+  .talk-msg :is(.talk-who, .talk-replay) {
+    display: none;
+  }
+
+  /* Камера выключена: только кнопка, без лишних строк — аватар должно быть видно */
+  .talk-live.is-empty:has(#talkCamera:not([hidden])) {
+    padding: 0;
+    background: none;
+    backdrop-filter: none;
+  }
+
+  .talk-live.is-empty:has(#talkCamera:not([hidden])) :is(.talk-live-label, p) {
+    display: none;
+  }
+
+  .talk-mic {
+    width: 46px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  /* Подпись остаётся для экранного диктора */
+  .talk-mic span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .talk-input select {
+    width: 64px;
+    padding: 0 6px;
+    appearance: none;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+
+  .talk-input input {
+    padding: 0 14px;
+  }
+}
+
+/* Узкий телефон: кнопки скорости закрывали бы голову аватара (остаётся обычная скорость 1×) */
+@media (max-width: 600px) {
+  .talk-avatar .av-top {
+    display: none;
+  }
+}

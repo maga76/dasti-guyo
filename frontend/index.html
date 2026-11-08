@@ -332,32 +332,39 @@
       <!-- ===== Экран «Ба имо»: речь слышащего → жесты 3D-аватара ===== -->
       <!-- Разговор: глухой — жестами, слышащий — голосом; см. talkView.js -->
       <section class="panel view talk" data-view="talk" hidden>
-        <div class="talk-head">
-          <h2 data-i18n="talk.title"></h2>
-          <button type="button" class="btn btn-secondary btn-small" id="talkClear" data-i18n="talk.clear"></button>
+        <div class="talk-call">
+          <div class="talk-avatar" id="talkAvatar"></div>
+          <div class="talk-ui">
+            <div class="talk-bar">
+              <h2 data-i18n="talk.title"></h2>
+              <button type="button" class="talk-round" id="talkClear" data-i18n-title="talk.clear" data-i18n-aria-label="talk.clear">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+              </button>
+            </div>
+            <ol class="talk-feed" id="talkFeed" aria-live="polite"></ol>
+            <div class="talk-live is-empty" id="talkLive">
+              <span class="talk-live-label" data-i18n="talk.deafNow"></span>
+              <div class="sentence-words" id="talkLiveWords" lang="tg"></div>
+              <p id="talkLiveText" lang="tg" aria-live="polite"></p>
+              <button type="button" class="btn btn-primary btn-small" id="talkCamera" data-i18n="camera.start"></button>
+            </div>
+            <p class="note is-error" id="talkStatus" role="status"></p>
+            <form class="talk-input" id="talkForm">
+              <button type="button" class="talk-mic" id="talkMic">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
+                <span id="talkMicLabel"></span>
+              </button>
+              <select id="talkLang" data-i18n-aria-label="tr.micLang">
+                <option value="tg-TJ">Тоҷикӣ</option>
+                <option value="ru-RU">Русский</option>
+              </select>
+              <input id="talkInput" autocomplete="off" data-i18n-placeholder="talk.placeholder" data-i18n-aria-label="talk.placeholder" />
+              <button type="submit" class="talk-send" data-i18n-title="talk.send" data-i18n-aria-label="talk.send">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
+              </button>
+            </form>
+          </div>
         </div>
-        <p class="hint" data-i18n="talk.hint"></p>
-        <div class="talk-avatar" id="talkAvatar"></div>
-        <div class="talk-live is-empty" id="talkLive">
-          <span class="talk-live-label" data-i18n="talk.deafNow"></span>
-          <div class="sentence-words" id="talkLiveWords" lang="tg"></div>
-          <p id="talkLiveText" lang="tg" aria-live="polite"></p>
-          <button type="button" class="btn btn-primary btn-small" id="talkCamera" data-i18n="camera.start"></button>
-        </div>
-        <ol class="talk-feed" id="talkFeed" aria-live="polite"></ol>
-        <form class="talk-input" id="talkForm">
-          <button type="button" class="talk-mic" id="talkMic">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
-            <span id="talkMicLabel"></span>
-          </button>
-          <select id="talkLang" data-i18n-aria-label="tr.micLang">
-            <option value="tg-TJ">Тоҷикӣ</option>
-            <option value="ru-RU">Русский</option>
-          </select>
-          <input id="talkInput" autocomplete="off" data-i18n-placeholder="talk.placeholder" />
-          <button type="submit" class="btn btn-primary" data-i18n="talk.send"></button>
-        </form>
-        <p class="note is-error" id="talkStatus" role="status"></p>
       </section>
 
       <section class="avatar-page view" data-view="avatar" hidden>

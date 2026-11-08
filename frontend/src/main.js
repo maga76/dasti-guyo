@@ -5,6 +5,7 @@ import '@fontsource-variable/onest/index.css';
 import '@fontsource-variable/geologica/crsv.css';
 import './styles/main.css';
 import './styles/chat.css';
+import './styles/talk.css';
 
 import { applyI18n, getLang, onLangChange, setLang, t } from './i18n/i18n.js';
 import { Camera, CameraError, checkCameraSupport } from './camera/camera.js';
@@ -201,6 +202,8 @@ async function startCamera(opts) {
       });
       return;
     }
+    // Пока грузилась модель, камера могла отключиться — об этом уже сообщил camera.onEnded
+    if (!camera.isRunning) return;
     hideStageMessage();
   }
 
