@@ -136,6 +136,78 @@ def test_madina_same_text_at_once_is_voiced_once(tmp_path, monkeypatch):
     assert calls == ["Салом"]
 
 
+def test_soft_voice_endpoint_caches(client, monkeypatch):
+    from app.services import voice
+
+    calls = []
+
+    async def fake_mp3(text, voice="madina"):
+        calls.append(voice)
+        return b"ID3soft"
+
+    monkeypatch.setattr(voice, "_synthesize", fake_mp3)
+    for _ in range(2):
+        res = client.get(f"{API}/tts", params={"text": "Нарм гап", "voice": "achernar"})
+        assert res.status_code == 200 and res.content == b"ID3soft"
+        assert "max-age" in res.headers["cache-control"]
+    assert calls == ["achernar"]
+
+
+def test_soft_voice_limit_falls_back_to_madina_uncached(client, monkeypatch):
+    """Лимит кончился — звучит «Мадина», но браузер не запоминает её вместо нового голоса."""
+    from app.services import voice
+
+    async def limited(text, voice="madina"):
+        if voice == "achernar":
+            raise tts.TtsUnavailable()
+        return b"ID3madina"
+
+    monkeypatch.setattr(voice, "_synthesize", limited)
+    res = client.get(f"{API}/tts", params={"text": "Лимит тамом", "voice": "achernar"})
+    assert res.status_code == 200 and res.content == b"ID3madina"
+    assert res.headers["cache-control"] == "no-store"
+
+
+def test_gemini_rests_after_limit(monkeypatch):
+    """Ответ 429 — следующие фразы не ждут Gemini, а сразу идут запасному голосу."""
+    import asyncio
+    from types import SimpleNamespace
+
+    import httpx
+
+    from app.services import voice
+
+    calls = []
+
+    async def fake_post(self, url, **kwargs):
+        calls.append(url)
+        return httpx.Response(429)
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+    monkeypatch.setattr(voice, "get_settings", lambda: SimpleNamespace(gemini_api_key="k"))
+    monkeypatch.setattr(voice, "_gemini_rest_until", 0.0)
+    for _ in range(2):
+        try:
+            asyncio.run(voice._gemini("Салом"))
+        except tts.TtsUnavailable:
+            pass
+    assert len(calls) == 1
+    assert voice.gemini_resting()
+
+
+def test_wav_to_mp3():
+    from app.services import voice
+
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(24000)
+        w.writeframes(b"\x10\x00\xf0\xff" * 24000)
+    mp3 = voice._wav_to_mp3(buf.getvalue())
+    assert len(mp3) > 1000 and len(mp3) < len(buf.getvalue()) / 4
+
+
 def test_unknown_voice_rejected(client):
     assert client.get(f"{API}/tts", params={"text": "Салом", "voice": "robot"}).status_code == 422
 

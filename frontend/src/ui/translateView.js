@@ -31,6 +31,9 @@ export const MIN_AGREE = 3;
 const MIN_GAP_MS = 800;
 // Человек опустил руки на столько — предложение готово: сайт произносит его целиком
 const SENTENCE_PAUSE_MS = 2500;
+// В ленте живут последние фразы: на телефоне и планшете места меньше
+const feedLimit = () => (matchMedia('(max-width: 980px)').matches ? 3 : 4);
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Голос предложения начинаем готовить заранее — через столько после последнего слова
 const SENTENCE_PRELOAD_MS = 600;
 
@@ -67,6 +70,7 @@ export class TranslateView {
 
     // Предложение
     this.words = [];
+    this.feed = []; // сказанные фразы — лента сбоку экрана
     this.rules = [];
     this.lastAdded = null;
     this.lastAddedAt = 0;
@@ -76,7 +80,11 @@ export class TranslateView {
     this.threshold = Number(readSetting(THRESHOLD_KEY, DEFAULT_THRESHOLD));
     preloadSpeech();
     this.bindEvents();
-    onLangChange(() => this.update());
+    onLangChange(() => {
+      this.update();
+      this.renderFeed();
+    });
+    this.renderFeed();
 
     loadBaseDataset().then((base) => {
       for (const v of base?.vocabulary ?? []) this.vocabulary.set(v.label, v);
@@ -112,6 +120,14 @@ export class TranslateView {
       this.renderSentence();
     });
     $('btnSpeakSentence').addEventListener('click', () => this.speakSentence());
+    $('trFeedClear').addEventListener('click', () => {
+      this.feed = [];
+      this.renderFeed();
+    });
+    $('trFeed').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-replay]');
+      if (btn) this.say(btn.dataset.replay, true);
+    });
     $('btnShowBig').addEventListener('click', () => showBigText(this.sentence().tj));
 
     // Быстрые фразы: произнести и показать крупно
@@ -220,29 +236,30 @@ export class TranslateView {
     this.onSentenceChange?.();
   }
 
-  /** После паузы в жестах — произнести готовое предложение целиком (если включён «Овоз»). */
+  /** После паузы в жестах фраза уходит в ленту (в «Сӯҳбат» — в чат) и звучит, даже из одного слова. */
   scheduleSentence() {
     clearTimeout(this.sentenceTimer);
     clearTimeout(this.preloadTimer);
-    // В «Сӯҳбат» каждое предложение звучит и уходит в чат, даже из одного слова («Салом»)
-    if (this.talkMode ? !this.words.length : this.words.length < 2 || !$('chkAutoSpeak').checked) return;
+    if (!this.words.length) return;
     const text = this.sentence().tj;
-    if (text === this.spokenSentence) return;
     this.preloadTimer = setTimeout(() => preloadText(text), SENTENCE_PRELOAD_MS);
-    this.sentenceTimer = setTimeout(() => this.speakSentence(), SENTENCE_PAUSE_MS);
+    this.sentenceTimer = setTimeout(() => this.speakSentence({ auto: true }), SENTENCE_PAUSE_MS);
   }
 
-  async speakSentence() {
+  /** @param {{auto?: boolean}} [opts] auto — сама после паузы, а не по кнопке */
+  async speakSentence({ auto = false } = {}) {
     if (!this.words.length) return;
     const sentence = this.sentence();
-    this.spokenSentence = sentence.tj;
+    const voiceOn = $('chkAutoSpeak').checked;
+    // Одно слово при включённом «Овоз» уже прозвучало, когда его распознали
+    const mute = auto && (voiceOn ? this.words.length === 1 : !this.talkMode);
     this.onSentenceSpoken?.(sentence);
-    // В разговоре сказанное ушло в чат — следующее предложение начинается с чистого листа
-    if (this.talkMode) {
-      this.words = [];
-      this.lastAdded = null;
-      this.renderSentence();
-    }
+    if (!this.talkMode) this.addToFeed(sentence);
+    // Сказанное ушло в ленту — следующая фраза начинается с чистого листа
+    this.words = [];
+    this.lastAdded = null;
+    this.renderSentence();
+    if (mute) return;
     const box = $('sentenceText');
     box.classList.add('is-speaking');
     try {
@@ -250,6 +267,73 @@ export class TranslateView {
     } finally {
       box.classList.remove('is-speaking');
     }
+  }
+
+  /** Новая фраза плавно появляется снизу, самая старая — растворяется сверху. */
+  addToFeed(sentence) {
+    const list = $('trFeed');
+    this.feed.push(sentence);
+    if (this.feed.length === 1) list.replaceChildren(); // убираем подсказку
+    const item = this.feedItem(sentence);
+    list.append(item);
+    this.slideIn(item);
+    if (this.feed.length > feedLimit()) {
+      this.feed.shift();
+      this.slideOut(list.querySelector('.tr-msg:not(.is-leaving)'));
+    }
+    list.scrollTop = list.scrollHeight;
+  }
+
+  feedItem(sentence) {
+    const li = document.createElement('li');
+    li.className = 'tr-msg';
+    li.innerHTML = '<p lang="tg"></p><button type="button" class="tr-msg-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 010 7"/></svg></button>';
+    li.querySelector('p').textContent = sentence.tj;
+    const play = li.querySelector('button');
+    play.dataset.replay = sentence.tj;
+    play.title = t('speech.speak');
+    play.setAttribute('aria-label', t('speech.speak'));
+    if (sentence.ru !== sentence.tj) li.append(Object.assign(document.createElement('small'), { textContent: sentence.ru }));
+    return li;
+  }
+
+  // Высота и отступы меняются вместе с прозрачностью — соседние фразы сдвигаются плавно, без рывка
+  slideIn(li) {
+    li.classList.add('is-fresh');
+    if (reducedMotion()) return;
+    li.animate(
+      [
+        { height: 0, paddingTop: 0, paddingBottom: 0, marginTop: '-8px', opacity: 0, transform: 'translateY(18px) scale(0.94)' },
+        { height: `${li.offsetHeight}px` },
+      ],
+      { duration: 480, easing: 'cubic-bezier(0.22, 0.8, 0.3, 1)' },
+    );
+  }
+
+  slideOut(li) {
+    li.classList.add('is-leaving');
+    if (reducedMotion()) {
+      li.remove();
+      return;
+    }
+    const remove = () => li.remove();
+    li.animate(
+      [
+        { height: `${li.offsetHeight}px` },
+        { height: 0, paddingTop: 0, paddingBottom: 0, marginBottom: '-8px', opacity: 0, transform: 'translateY(-14px) scale(0.94)' },
+      ],
+      { duration: 560, easing: 'ease-in-out', fill: 'forwards' },
+    ).finished.then(remove, remove);
+  }
+
+  renderFeed() {
+    const list = $('trFeed');
+    if (!this.feed.length) {
+      list.replaceChildren(Object.assign(document.createElement('li'), { className: 'tr-feed-empty', textContent: t('tr.sentenceEmpty') }));
+      return;
+    }
+    list.replaceChildren(...this.feed.map((s) => this.feedItem(s)));
+    list.scrollTop = list.scrollHeight;
   }
 
   /** Произнести текст; если голоса нет — коротко сказать об этом (только при нажатии кнопки). */
@@ -287,8 +371,12 @@ export class TranslateView {
       return;
     }
     const word = $('readoutWord');
+    const fresh = this.currentWord !== labelName(best);
     this.currentWord = labelName(best);
     word.textContent = this.currentWord;
+    if (fresh && !reducedMotion()) {
+      word.animate([{ transform: 'scale(0.9)', opacity: 0.5 }, { transform: 'none', opacity: 1 }], { duration: 180, easing: 'ease-out' });
+    }
     word.classList.remove('is-idle');
     $('btnSpeak').disabled = false;
     $('readoutBar').style.width = `${Math.round(confidence * 100)}%`;

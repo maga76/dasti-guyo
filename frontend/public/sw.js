@@ -6,7 +6,7 @@
 //   - страница и словарь с сервера — сначала из сети, без сети — из кэша.
 // При изменении списка файлов увеличьте VERSION — старый кэш удалится.
 
-const VERSION = 'v6'; // v6: образ «Лазурит и золото», новый логотип
+const VERSION = 'v7'; // v7: новый голос, его список записей обновляется
 const CACHE = `dasti-guyo-${VERSION}`;
 
 const PRECACHE = ['./', 'index.html', 'favicon.svg?v=3', 'data/phrases.json', 'data/quick-phrases.json', 'audio/tts/index.json'];
@@ -72,8 +72,8 @@ self.addEventListener('fetch', (event) => {
     if (API_CACHE.includes(url.pathname)) event.respondWith(networkFirst(request));
     return;
   }
-  // Словарь фраз может меняться — сначала из сети
-  if (/\/data\//.test(url.pathname)) {
+  // Словарь фраз и список записей нового голоса могут меняться — сначала из сети
+  if (/\/data\//.test(url.pathname) || url.pathname.endsWith('/audio/achernar/index.json')) {
     event.respondWith(networkFirst(request));
     return;
   }

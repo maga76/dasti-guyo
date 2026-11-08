@@ -1,0 +1,547 @@
+/* ---------- «Тарҷума» — как «Разговор», только в главной роли камера ----------
+   Видео на весь экран, поверх него — стекло: слева лента фраз, по центру снизу слово.
+   Показал жесты, сделал паузу — фраза выезжает в ленту и звучит голосом.
+   .tr-hud лежит внутри #stage, виден только на этой странице. */
+
+.tr-hud {
+  display: none;
+}
+
+body[data-route='translate'] .layout {
+  --h: clamp(480px, calc(100dvh - 104px), 860px);
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-route='translate'] .stage-col {
+  position: static;
+}
+
+body[data-route='translate'] .stage,
+body[data-route='translate'] .stage:has(> .stage-message:not([hidden])) {
+  width: 100%;
+  max-width: none;
+  height: var(--h);
+  min-height: 0;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse 46% 56% at 50% 36%, rgb(110 140 255 / 0.22), transparent 70%),
+    radial-gradient(ellipse 85% 85% at 50% 26%, #1b2b78 0%, #0d1544 55%, #060a22 100%);
+  box-shadow: 0 30px 80px -30px rgb(5 9 22 / 0.7);
+}
+
+/* Видео заполняет весь экран. Кадр почти квадратный — лишнее срезаем больше сверху, руки ниже лица.
+   Точки рук совпадают с видео: у холста та же обрезка */
+body[data-route='translate'] .stage video,
+body[data-route='translate'] .stage #overlay {
+  object-fit: cover;
+  object-position: 50% 68%;
+}
+
+/* Кнопки камеры — только значки, в углу */
+body[data-route='translate'] .stage-toolbar {
+  top: 14px;
+  right: auto;
+  bottom: auto;
+  left: 14px;
+  z-index: 5;
+}
+
+body[data-route='translate'] .tool {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+}
+
+body[data-route='translate'] .tool svg {
+  width: 19px;
+  height: 19px;
+}
+
+body[data-route='translate'] .tool > span:not(.tool-fps),
+body[data-route='translate'] .tool-fps {
+  display: none;
+}
+
+/* Слой поверх видео. Клики между панелями проходят к видео */
+body[data-route='translate'] .tr-hud {
+  --text: var(--screen-text);
+  --muted: var(--screen-muted);
+  --line: rgb(255 255 255 / 0.14);
+  --surface: rgb(255 255 255 / 0.08);
+  --surface-2: rgb(255 255 255 / 0.12);
+  --accent: var(--zar);
+  --focus: var(--zar);
+  --glass: rgb(7 12 40 / 0.68);
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px;
+  color: var(--screen-text);
+  color-scheme: dark;
+  pointer-events: none;
+}
+
+/* Тень снизу — чтобы белые буквы читались на любом видео */
+body[data-route='translate'] .tr-hud::before {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  z-index: -1;
+  height: 46%;
+  background: linear-gradient(to top, rgb(4 8 28 / 0.82), transparent);
+}
+
+.tr-hud .readout {
+  display: contents;
+}
+
+.tr-hud .readout-top,
+.tr-hud .tr-feed,
+.tr-hud .sentence,
+.tr-hands {
+  pointer-events: auto;
+}
+
+/* Голос и очистка — в правом верхнем углу */
+.tr-hud .readout-top {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  gap: 8px;
+  padding: 4px 4px 4px 16px;
+  border-radius: 999px;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--line);
+  backdrop-filter: blur(10px);
+}
+
+.tr-hud .readout-caption {
+  margin: 0;
+  color: var(--screen-text);
+  font-size: 0.86rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tr-hud .readout-auto {
+  min-height: 40px;
+}
+
+.tr-hud .readout-speak,
+.tr-feed-clear {
+  width: 40px;
+  height: 40px;
+}
+
+.tr-hud .readout-speak svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tr-feed-clear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.1);
+  color: var(--screen-text);
+  cursor: pointer;
+}
+
+.tr-feed-clear:hover {
+  background: rgb(255 255 255 / 0.18);
+}
+
+.tr-feed-clear svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Видит ли сайт руки — сразу понятно, работает ли камера */
+.tr-hands {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--screen-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  transform: translateX(-50%);
+}
+
+.tr-hands::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #7a84aa;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+.tr-hands.is-on {
+  color: #fff;
+}
+
+.tr-hands.is-on::before {
+  background: #4ade80;
+  box-shadow: 0 0 0 4px rgb(74 222 128 / 0.25);
+}
+
+/* Лента — слева, поверх видео; старые фразы растворяются кверху */
+.tr-feed {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: clamp(260px, 28%, 370px);
+  max-height: 62%;
+  margin: 0;
+  padding: 24px 2px 0;
+  overflow: hidden;
+  list-style: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+  mask-image: linear-gradient(to bottom, transparent, #000 24px);
+}
+
+.tr-msg {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  padding: 11px 44px 11px 14px;
+  border-radius: 18px 18px 18px 6px;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--line);
+  backdrop-filter: blur(12px);
+}
+
+.tr-msg p {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.tr-msg small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.tr-msg-play {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.12);
+  color: var(--screen-text);
+  cursor: pointer;
+}
+
+.tr-msg-play:hover {
+  background: var(--zar);
+  color: var(--zar-ink);
+}
+
+.tr-msg-play svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Новая фраза (движение — в translateView.js): золотая рамка мягко гаснет */
+.tr-msg.is-fresh {
+  animation: tr-msg-glow 2.2s ease-out both;
+}
+
+.tr-msg.is-leaving {
+  pointer-events: none;
+}
+
+@keyframes tr-msg-glow {
+  from {
+    box-shadow:
+      inset 0 0 0 2px var(--zar),
+      0 0 26px rgb(242 190 74 / 0.5);
+  }
+}
+
+.tr-feed > .tr-feed-empty {
+  flex: none;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--glass);
+  color: var(--screen-text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  backdrop-filter: blur(10px);
+}
+
+/* Слово — крупные субтитры по центру снизу */
+.tr-hud .readout-word {
+  max-width: 44%;
+  margin: 0;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 5.6vw, 5.4rem);
+  line-height: 1;
+  text-align: center;
+  text-shadow:
+    0 2px 6px rgb(0 0 20 / 0.7),
+    0 8px 36px rgb(0 0 20 / 0.7);
+}
+
+.tr-hud .readout-word.is-idle {
+  max-width: none;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: var(--glass);
+  color: var(--screen-text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-shadow: none;
+  backdrop-filter: blur(10px);
+}
+
+.tr-hud .readout-meter {
+  width: min(240px, 40%);
+  height: 5px;
+  background: rgb(255 255 255 / 0.2);
+}
+
+.tr-hud .readout-meter span {
+  background: var(--zar);
+}
+
+/* Пока слова нет — полоска не нужна; камера выключена — не нужны ни слово, ни тень */
+.tr-hud .readout-word.is-idle + .readout-meter,
+.stage:has(> .stage-message:not([hidden])) .tr-hud :is(.readout-word, .readout-meter),
+body[data-route='translate'] .stage:has(> .stage-message:not([hidden])) .tr-hud::before {
+  display: none;
+}
+
+/* Собираемая фраза — под словом, только когда уже есть жесты */
+.tr-hud .sentence {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  width: min(520px, 40%);
+  margin: 0;
+  padding: 8px 8px 8px 16px;
+  border-radius: 18px;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--line);
+  backdrop-filter: blur(12px);
+}
+
+.tr-hud .sentence:has(.sentence-text.is-empty) {
+  display: none;
+}
+
+.tr-hud .section-head {
+  grid-row: 1 / span 3;
+  grid-column: 2;
+}
+
+.tr-hud .section-head h2,
+.tr-hud .sentence-hint {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tr-hud .icon-row {
+  gap: 4px;
+}
+
+.tr-hud .icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+}
+
+.tr-hud .icon-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.tr-hud .sentence-words {
+  grid-column: 1;
+  margin: 0 0 2px;
+}
+
+.tr-hud .sentence-text {
+  grid-column: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 1.05rem;
+}
+
+.tr-hud .sentence-sub {
+  grid-column: 1;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* Под экраном: фразы, затем ответ слышащего и словарь */
+body[data-route='translate'] [data-view='translate'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+body[data-route='translate'] [data-view='translate'][hidden] {
+  display: none;
+}
+
+body[data-route='translate'] :is(.reply, .quick, .vocab, .demo, .settings) {
+  margin-top: 0;
+}
+
+@media (min-width: 981px) {
+  body[data-route='translate'] [data-view='translate'] {
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  body[data-route='translate'] .quick {
+    grid-area: 1 / 1 / auto / -1;
+  }
+
+  body[data-route='translate'] .empty {
+    grid-column: 1 / -1;
+  }
+
+  body[data-route='translate'] .reply {
+    grid-area: 2 / 1;
+  }
+
+  body[data-route='translate'] .settings {
+    grid-area: 3 / 1;
+  }
+
+  body[data-route='translate'] .vocab {
+    grid-area: 2 / 2 / span 3;
+  }
+
+  body[data-route='translate'] [data-view='translate']:has(#demo:not([hidden])) .vocab {
+    grid-area: 3 / 2 / span 2;
+  }
+
+  body[data-route='translate'] .demo {
+    grid-area: 2 / 2;
+  }
+}
+
+@media (max-width: 720px) {
+  body[data-route='translate'] .layout {
+    --h: max(500px, calc(100dvh - 148px - env(safe-area-inset-bottom)));
+  }
+
+  body[data-route='translate'] .stage,
+  body[data-route='translate'] .stage:has(> .stage-message:not([hidden])) {
+    border-radius: 18px;
+  }
+}
+
+/* Планшет и телефон: всё в один столбец поверх видео, кнопка ИИ-чата справа внизу свободна */
+@media (max-width: 980px) {
+  body[data-route='translate'] .stage-message {
+    bottom: 96px;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  body[data-route='translate'] .tr-hud {
+    align-items: flex-start;
+    padding: 10px 76px 10px 10px;
+  }
+
+  .tr-hud .readout-top {
+    top: 10px;
+    right: 10px;
+    padding: 2px 2px 2px 12px;
+  }
+
+  .tr-hud .readout-caption {
+    display: none;
+  }
+
+  .tr-hands {
+    top: 62px;
+    right: 10px;
+    left: auto;
+    transform: none;
+  }
+
+  .tr-feed {
+    position: static;
+    width: 100%;
+    max-height: 34%;
+    padding-top: 16px;
+  }
+
+  .tr-msg p {
+    font-size: 1rem;
+  }
+
+  .tr-hud .readout-word {
+    max-width: 100%;
+    font-size: clamp(2rem, 10vw, 2.9rem);
+    text-align: left;
+  }
+
+  .tr-hud .readout-meter {
+    width: 60%;
+  }
+
+  .tr-hud .sentence {
+    width: 100%;
+    padding: 8px 10px;
+  }
+
+  /* Места мало: фраза и так уйдёт в ленту сама */
+  .tr-hud .section-head {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-msg.is-fresh {
+    animation: none;
+  }
+}

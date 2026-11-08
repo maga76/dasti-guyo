@@ -11,6 +11,8 @@ bcrypt==4.0.1
 python-multipart>=0.0.9
 # Женский голос «Мадина» для новых слов (app/services/voice.py) — нужен интернет на сервере
 edge-tts>=7.0
+# Сжатие голоса Gemini в MP3 (app/services/voice.py)
+lameenc>=1.7
 numpy>=1.26
 scikit-learn>=1.4
 # Асинхронные запросы к Google (вход через Google); им же пользуются тесты

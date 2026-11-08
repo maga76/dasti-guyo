@@ -1,5 +1,7 @@
-// Озвучка по-таджикски. Два голоса на выбор (кнопка в «Талаффуз», запоминается):
-//   «Мадина» (по умолчанию) — женский нейросетевой голос Microsoft uz-UZ-MadinaNeural; таджикский
+// Озвучка по-таджикски. Три голоса на выбор (кнопка в «Талаффуз», запоминается):
+//   «Мягкий» (по умолчанию) — голос Achernar модели Gemini, понимает таджикский сам — public/audio/achernar;
+//     пока для фразы нет его записи, звучит запись «Мадины»;
+//   «Мадина» — женский нейросетевой голос Microsoft uz-UZ-MadinaNeural; таджикский
 //     текст читается через узбекскую латиницу (узбекское произношение очень близко) — public/audio/madina;
 //   «MMS» — нейросеть Meta MMS-TTS, обученная на таджикском, мужской голос — public/audio/tts.
 // Источники по порядку:
@@ -13,19 +15,21 @@ import { config } from '../config.js';
 import { assetUrls, download, downloadJson } from '../net/download.js';
 
 const base = import.meta.env.BASE_URL;
-const VOICE_KEY = 'dasti-guyo:voice';
-export const VOICES = ['madina', 'mms'];
-const VOICE_DIRS = { madina: 'audio/madina', mms: 'audio/tts' };
+// Имя с «2»: при появлении нового голоса все начинают с него, а не с запомненной «Мадины»
+const VOICE_KEY = 'dasti-guyo:voice2';
+const DEFAULT_VOICE = 'achernar';
+export const VOICES = ['achernar', 'madina', 'mms'];
+const VOICE_DIRS = { achernar: 'audio/achernar', madina: 'audio/madina', mms: 'audio/tts' };
 const indexPromises = {};
 let current = null; // текущий HTMLAudioElement
 
-/** Выбранный голос: 'madina' | 'mms'. */
+/** Выбранный голос: 'achernar' | 'madina' | 'mms'. */
 export function getVoice() {
   try {
     const v = localStorage.getItem(VOICE_KEY);
-    return VOICES.includes(v) ? v : 'madina';
+    return VOICES.includes(v) ? v : DEFAULT_VOICE;
   } catch {
-    return 'madina';
+    return DEFAULT_VOICE;
   }
 }
 
@@ -42,8 +46,11 @@ export const normalize = (text) => text.trim().toLowerCase().replace(/\s+/g, ' '
 
 // Файлы голоса берутся с быстрого CDN (как модели, net/download.js) и хранятся в браузере:
 // со своего сервера на медленном интернете каждое слово начинало звучать через секунды
+// Записи «Мягкого» голоса добавляются понемногу — их нет на CDN, берём с нашего сервера
+const voiceUrls = (path) => (path.startsWith(VOICE_DIRS.achernar) ? [`${base}${path}`] : assetUrls(path));
+
 function loadIndex(voice = getVoice()) {
-  indexPromises[voice] ??= downloadJson(assetUrls(`${VOICE_DIRS[voice]}/index.json`)).catch(() => {
+  indexPromises[voice] ??= downloadJson(voiceUrls(`${VOICE_DIRS[voice]}/index.json`)).catch(() => {
     delete indexPromises[voice]; // попробуем ещё раз при следующем слове
     return null;
   });
@@ -53,7 +60,9 @@ function loadIndex(voice = getVoice()) {
 /** Путь готового файла (от public/) для текста в выбранном голосе или null. */
 async function filePath(text, voice = getVoice()) {
   const file = (await loadIndex(voice))?.files?.[normalize(text)];
-  return file ? `${VOICE_DIRS[voice]}/${file}` : null;
+  if (file) return `${VOICE_DIRS[voice]}/${file}`;
+  // Записаны ещё не все фразы: лучше сразу запись «Мадины», чем несколько секунд тишины
+  return voice === 'achernar' ? filePath(text, 'madina') : null;
 }
 
 const blobUrls = new Map(); // путь файла → Promise<blob-адрес>
@@ -62,7 +71,7 @@ const blobUrls = new Map(); // путь файла → Promise<blob-адрес>
 function audioUrl(path) {
   if (!blobUrls.has(path)) {
     const type = path.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav';
-    const promise = download(assetUrls(path)).then((buf) => URL.createObjectURL(new Blob([buf], { type })));
+    const promise = download(voiceUrls(path)).then((buf) => URL.createObjectURL(new Blob([buf], { type })));
     promise.catch(() => blobUrls.delete(path));
     blobUrls.set(path, promise);
   }
@@ -175,8 +184,8 @@ async function fromServer(text) {
   if (Date.now() < serverSkipUntil) return null;
   try {
     const res = await fetch(`${config.apiUrl}/tts?voice=${getVoice()}&text=${encodeURIComponent(text)}`, {
-      // Обычно ~0.5 с; дольше не ждём — слово должно прозвучать сразу
-      signal: AbortSignal.timeout(8_000),
+      // Новая фраза готовится несколько секунд; сервер сам переключится на «Мадину» через 7 с
+      signal: AbortSignal.timeout(10_000),
     });
     if (res.status === 503) serverSkipUntil = Date.now() + 10 * 60_000; // голос на сервере не установлен
     if (!res.ok) return null;

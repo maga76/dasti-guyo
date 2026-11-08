@@ -6,6 +6,7 @@ import '@fontsource-variable/geologica/crsv.css';
 import './styles/main.css';
 import './styles/chat.css';
 import './styles/talk.css';
+import './styles/translate.css';
 
 import { applyI18n, getLang, onLangChange, setLang, t } from './i18n/i18n.js';
 import { Camera, CameraError, checkCameraSupport } from './camera/camera.js';
@@ -317,7 +318,12 @@ function renderStats() {
   $('fpsBadge').textContent = `${Math.round(s.detectFps)} FPS`;
 
   const sides = (running ? state.hands : []).map((h) => t(h.side === 'left' ? 'hands.left' : 'hands.right'));
-  $('stHands').textContent = sides.length ? sides.join(', ') : t('hands.none');
+  const handsText = sides.length ? sides.join(', ') : t('hands.none');
+  $('stHands').textContent = handsText;
+  // Значок на экране камеры: видно ли руки прямо сейчас
+  $('trHands').hidden = !running;
+  $('trHands').textContent = handsText;
+  $('trHands').classList.toggle('is-on', sides.length > 0);
 }
 
 // Статистику обновляем 4 раза в секунду — чаще не нужно и только тратит силы

@@ -162,6 +162,54 @@
             <div class="stage-message-actions" id="msgActions"></div>
           </div>
 
+          <!-- «Тарҷума»: слово и предложение поверх видео (см. translate.css) -->
+          <div class="tr-hud">
+            <span class="tr-hands" id="trHands" hidden></span>
+            <ol class="tr-feed" id="trFeed" aria-live="polite"></ol>
+          <div class="readout" id="readout">
+            <div class="readout-top">
+              <p class="readout-caption" id="readoutCaption" data-i18n="tr.sees"></p>
+              <label class="readout-auto">
+                <input type="checkbox" id="chkAutoSpeak" checked />
+                <span data-i18n="speech.auto"></span>
+              </label>
+              <button type="button" class="readout-speak" id="btnSpeak" data-i18n-title="speech.speak" data-i18n-aria-label="speech.speak" disabled>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
+              </button>
+              <button type="button" class="tr-feed-clear" id="trFeedClear" data-i18n-title="tr.clear" data-i18n-aria-label="tr.clear">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+              </button>
+            </div>
+            <p class="readout-word" id="readoutWord" aria-live="polite"></p>
+            <div class="readout-meter" id="readoutMeter"><span id="readoutBar"></span></div>
+          </div>
+
+          <!-- Предложение из распознанных слов -->
+          <section class="sentence" id="sentenceBox">
+            <div class="section-head">
+              <h2 data-i18n="tr.sentence"></h2>
+              <div class="icon-row">
+                <button type="button" class="icon-btn" id="btnBackspace" data-i18n-title="tr.eraseWord" data-i18n-aria-label="tr.eraseWord">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11a1 1 0 011 1v12a1 1 0 01-1 1H9l-6-7 6-7zM12 9l6 6M18 9l-6 6"/></svg>
+                </button>
+                <button type="button" class="icon-btn" id="btnClear" data-i18n-title="tr.clear" data-i18n-aria-label="tr.clear">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+                </button>
+                <button type="button" class="icon-btn" id="btnShowBig" data-i18n-title="tr.showBig" data-i18n-aria-label="tr.showBig">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+                </button>
+                <button type="button" class="icon-btn icon-btn-primary" id="btnSpeakSentence" data-i18n-title="tr.speakSentence" data-i18n-aria-label="tr.speakSentence">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="sentence-words" id="sentenceWords" lang="tg" aria-label="Жестҳо"></div>
+            <p class="sentence-text" id="sentenceText" lang="tg" aria-live="polite"></p>
+            <p class="sentence-sub" id="sentenceSub"></p>
+            <p class="sentence-hint" data-i18n="tr.sentenceHint"></p>
+          </section>
+          </div>
+
           <!-- Обратный отсчёт перед записью -->
           <div class="countdown" id="countdown" hidden aria-live="assertive">
             <span class="countdown-label" id="countdownLabel"></span>
@@ -216,46 +264,6 @@
 
       <!-- ===== Экран «Тарҷума» ===== -->
       <section class="panel view" data-view="translate">
-        <div class="readout" id="readout">
-          <div class="readout-top">
-            <p class="readout-caption" id="readoutCaption" data-i18n="tr.sees"></p>
-            <label class="readout-auto">
-              <input type="checkbox" id="chkAutoSpeak" checked />
-              <span data-i18n="speech.auto"></span>
-            </label>
-            <button type="button" class="readout-speak" id="btnSpeak" data-i18n-title="speech.speak" data-i18n-aria-label="speech.speak" disabled>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
-            </button>
-          </div>
-          <p class="readout-word" id="readoutWord" aria-live="polite"></p>
-          <div class="readout-meter" id="readoutMeter"><span id="readoutBar"></span></div>
-        </div>
-
-        <!-- Предложение из распознанных слов -->
-        <section class="sentence" id="sentenceBox">
-          <div class="section-head">
-            <h2 data-i18n="tr.sentence"></h2>
-            <div class="icon-row">
-              <button type="button" class="icon-btn" id="btnBackspace" data-i18n-title="tr.eraseWord" data-i18n-aria-label="tr.eraseWord">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11a1 1 0 011 1v12a1 1 0 01-1 1H9l-6-7 6-7zM12 9l6 6M18 9l-6 6"/></svg>
-              </button>
-              <button type="button" class="icon-btn" id="btnClear" data-i18n-title="tr.clear" data-i18n-aria-label="tr.clear">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
-              </button>
-              <button type="button" class="icon-btn" id="btnShowBig" data-i18n-title="tr.showBig" data-i18n-aria-label="tr.showBig">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
-              </button>
-              <button type="button" class="icon-btn icon-btn-primary" id="btnSpeakSentence" data-i18n-title="tr.speakSentence" data-i18n-aria-label="tr.speakSentence">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
-              </button>
-            </div>
-          </div>
-          <div class="sentence-words" id="sentenceWords" lang="tg" aria-label="Жестҳо"></div>
-          <p class="sentence-text" id="sentenceText" lang="tg" aria-live="polite"></p>
-          <p class="sentence-sub" id="sentenceSub"></p>
-          <p class="sentence-hint" data-i18n="tr.sentenceHint"></p>
-        </section>
-
         <!-- Быстрые фразы -->
         <section class="quick">
           <h2 data-i18n="tr.quick"></h2>
