@@ -6,10 +6,10 @@
 //   - страница и словарь с сервера — сначала из сети, без сети — из кэша.
 // При изменении списка файлов увеличьте VERSION — старый кэш удалится.
 
-const VERSION = 'v7'; // v7: новый голос, его список записей обновляется
+const VERSION = 'v8'; // v8: логотип без скола
 const CACHE = `dasti-guyo-${VERSION}`;
 
-const PRECACHE = ['./', 'index.html', 'favicon.svg?v=3', 'data/phrases.json', 'data/quick-phrases.json', 'audio/tts/index.json'];
+const PRECACHE = ['./', 'index.html', 'favicon.svg?v=5', 'data/phrases.json', 'data/quick-phrases.json', 'audio/tts/index.json'];
 
 // Ответы API, которые полезно иметь без сети
 const API_CACHE = ['/api/v1/dictionary', '/api/v1/models/latest'];

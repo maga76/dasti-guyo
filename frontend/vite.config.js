@@ -15,7 +15,7 @@ function assetRef() {
     return execSync(
       'git log -1 --format=%H -- public ":(exclude)public/privacy.html" ":(exclude)public/favicon.svg" ' +
         '":(exclude)public/robots.txt" ":(exclude)public/sitemap.xml" ":(exclude)public/og.png" ' +
-        '":(exclude)public/audio/achernar" ":(exclude)public/sw.js"',
+        '":(exclude)public/audio/achernar" ":(exclude)public/sw.js" ":(exclude)public/icons" ":(exclude)public/manifest.webmanifest"',
       {
         cwd,
         encoding: 'utf8',
